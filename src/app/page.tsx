@@ -3,6 +3,7 @@
 
 import { BottomNav } from "@/components/BottomNav";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -56,7 +57,7 @@ export default function Home() {
       <header className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-            Hi, {profile?.displayName || 'Explorer'}! <Sparkles className="text-secondary animate-pulse" />
+            Hi, {profile?.displayName || user?.displayName || 'Explorer'}! <Sparkles className="text-secondary animate-pulse" />
           </h1>
           <p className="text-muted-foreground font-medium">Ready for an adventure today?</p>
         </div>
