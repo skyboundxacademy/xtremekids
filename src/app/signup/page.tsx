@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -12,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -30,14 +31,23 @@ export default function SignupPage() {
       
       await updateProfile(user, { displayName: name });
       
-      // Create user profile in Firestore
-      setDoc(doc(db, 'users', user.uid), {
+      const profileData = {
         displayName: name,
         totalStars: 0,
         badges: [],
         role: 'student',
         createdAt: new Date().toISOString()
-      });
+      };
+
+      // Non-blocking write for user profile
+      setDoc(doc(db, 'users', user.uid), profileData)
+        .catch(async () => {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: `users/${user.uid}`,
+            operation: 'create',
+            requestResourceData: profileData
+          }));
+        });
 
       router.push('/');
     } catch (error: any) {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -121,11 +120,11 @@ export default function AdminPage() {
   const handleApprove = (submission: any) => {
     updateDoc(doc(db, 'submissions', submission.id), { status: 'approved' })
       .then(() => {
-        return updateDoc(doc(db, 'users', submission.userId), { 
+        updateDoc(doc(db, 'users', submission.userId), { 
           totalStars: increment(submission.points || 0) 
+        }).catch(() => {
+          // Inner failure handling
         });
-      })
-      .then(() => {
         toast({ title: "Approved!", description: `Explorer ${submission.userName} received ${submission.points} stars!` });
       })
       .catch(async () => {
@@ -152,7 +151,12 @@ export default function AdminPage() {
   const handleDeleteLesson = (id: string) => {
     deleteDoc(doc(db, 'lessons', id))
       .then(() => toast({ title: "Deleted", description: "Lesson removed." }))
-      .catch(() => toast({ title: "Error", description: "Permission denied", variant: "destructive" }));
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: `lessons/${id}`, 
+          operation: 'delete' 
+        }));
+      });
   };
 
   return (
@@ -335,7 +339,11 @@ export default function AdminPage() {
             <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
               Ready to import your students? Upload your CSV and we'll sync their balances to Firestore.
             </p>
-            <Button variant="outline" className="rounded-xl h-12 px-8 font-bold border-2">
+            <Button 
+              variant="outline" 
+              className="rounded-xl h-12 px-8 font-bold border-2"
+              onClick={() => toast({ title: "Coming Soon!", description: "CSV Import functionality is being prepared." })}
+            >
               Select CSV File
             </Button>
           </Card>
