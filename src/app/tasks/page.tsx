@@ -22,8 +22,9 @@ export default function TasksPage() {
   const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(new Set());
 
   const tasksQuery = useMemoFirebase(() => {
+    if (!user) return null;
     return query(collection(db, 'tasks'), orderBy('createdAt', 'desc'));
-  }, [db]);
+  }, [db, user]);
 
   const { data: tasks, isLoading } = useCollection<any>(tasksQuery);
 
@@ -36,9 +37,6 @@ export default function TasksPage() {
       where("status", "==", "approved")
     );
     getDocs(q).then((snapshot) => {
-      const completed = new Set(snapshot.docs.map(doc => doc.data().taskId));
-      // Note: We'd need to add taskId to submission data for perfect tracking
-      // For now, let's just track by Title to keep it simple as an MVP
       const completedTitles = new Set(snapshot.docs.map(doc => doc.data().taskTitle));
       setCompletedTaskIds(completedTitles);
     });
@@ -101,13 +99,13 @@ export default function TasksPage() {
           <Cloud className="w-5 h-5 text-primary/30" /> Today's Mission
         </h2>
 
-        {isLoading && (
+        {(isLoading || !user) && (
           <div className="flex justify-center py-10">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
           </div>
         )}
 
-        {!isLoading && tasksList.map((task) => {
+        {!isLoading && user && tasksList.map((task) => {
           const isCompleted = completedTaskIds.has(task.title);
           return (
             <Card key={task.id} className={cn(
@@ -153,7 +151,7 @@ export default function TasksPage() {
           )
         })}
 
-        {!isLoading && tasksList.length === 0 && (
+        {!isLoading && user && tasksList.length === 0 && (
           <div className="text-center py-10 border-2 border-dashed rounded-3xl opacity-40">
             <p className="text-sm font-medium">No missions for today yet!</p>
           </div>

@@ -9,16 +9,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 
 export default function AcademyPage() {
   const [search, setSearch] = useState("");
+  const { user } = useUser();
   const db = useFirestore();
 
   const lessonsQuery = useMemoFirebase(() => {
+    if (!user) return null;
     return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'));
-  }, [db]);
+  }, [db, user]);
 
   const { data: lessons, isLoading } = useCollection<any>(lessonsQuery);
 
@@ -47,13 +49,13 @@ export default function AcademyPage() {
       </header>
 
       <section className="space-y-6">
-        {isLoading && (
+        {(isLoading || !user) && (
           <div className="flex justify-center py-20">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
           </div>
         )}
 
-        {!isLoading && filteredLessons.map((lesson) => (
+        {!isLoading && user && filteredLessons.map((lesson) => (
           <Link key={lesson.id} href={`/academy/${lesson.id}`}>
             <Card className="overflow-hidden border-none kid-card-shadow relative bg-white group active:scale-95 transition-transform mb-6">
               <div className="diary-tape bg-secondary/20" />
@@ -84,7 +86,7 @@ export default function AcademyPage() {
           </Link>
         ))}
 
-        {!isLoading && filteredLessons.length === 0 && (
+        {!isLoading && user && filteredLessons.length === 0 && (
           <div className="text-center py-20">
             <Cloud className="w-16 h-16 mx-auto text-primary/10 mb-4" />
             <p className="font-bold text-primary/40">No lessons found matching that!</p>

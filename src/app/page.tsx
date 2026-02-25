@@ -25,8 +25,9 @@ export default function Home() {
   const { data: profile } = useDoc<any>(userProfileRef);
 
   const featuredQuery = useMemoFirebase(() => {
+    if (!user) return null;
     return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'), limit(1));
-  }, [db]);
+  }, [db, user]);
 
   const { data: featuredLessons, isLoading: isFeaturedLoading } = useCollection<any>(featuredQuery);
   const featured = featuredLessons?.[0];

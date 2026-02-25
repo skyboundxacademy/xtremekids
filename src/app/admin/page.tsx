@@ -10,20 +10,22 @@ import { ArrowLeft, Plus, CheckCircle, XCircle, Users, Upload, LayoutDashboard, 
 import Link from "next/link";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, increment, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 export default function AdminPage() {
   const { toast } = useToast();
+  const { user } = useUser();
   const db = useFirestore();
   const [loading, setLoading] = useState(false);
 
   // Real-time submissions query
   const submissionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
     return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
-  }, [db]);
+  }, [db, user]);
   
   const { data: submissions } = useCollection<any>(submissionsQuery);
 
