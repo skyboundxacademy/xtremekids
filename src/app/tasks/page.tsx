@@ -1,4 +1,3 @@
-
 "use client"
 
 import { BottomNav } from "@/components/BottomNav";
@@ -28,7 +27,6 @@ export default function TasksPage() {
 
   const { data: tasks, isLoading } = useCollection<any>(tasksQuery);
 
-  // Fetch user's submissions to check task status
   useEffect(() => {
     if (!user) return;
     const fetchStatus = async () => {
@@ -40,7 +38,6 @@ export default function TasksPage() {
       const newMap: Record<string, 'pending' | 'approved' | null> = {};
       snapshot.docs.forEach(doc => {
         const data = doc.data();
-        // If it's already approved, keep it approved. If pending, set pending.
         if (data.status === 'approved' || !newMap[data.taskTitle]) {
            newMap[data.taskTitle] = data.status;
         }
@@ -81,9 +78,21 @@ export default function TasksPage() {
       .finally(() => setSubmittingId(null));
   };
 
-  const tasksList = tasks || [];
-  const approvedCount = tasksList.filter(t => statusMap[t.title] === 'approved').length;
-  const progress = tasksList.length > 0 ? (approvedCount / tasksList.length) * 100 : 0;
+  // Sorting Logic: Pending/Approved at the bottom
+  const sortedTasks = (tasks || []).sort((a, b) => {
+    const statusA = statusMap[a.title];
+    const statusB = statusMap[b.title];
+    
+    const isDoneA = statusA === 'approved' || statusA === 'pending';
+    const isDoneB = statusB === 'approved' || statusB === 'pending';
+
+    if (isDoneA && !isDoneB) return 1;
+    if (!isDoneA && isDoneB) return -1;
+    return 0;
+  });
+
+  const approvedCount = sortedTasks.filter(t => statusMap[t.title] === 'approved').length;
+  const progress = sortedTasks.length > 0 ? (approvedCount / sortedTasks.length) * 100 : 0;
 
   return (
     <main className="min-h-screen pb-24 px-6 pt-12 max-w-md mx-auto">
@@ -114,7 +123,7 @@ export default function TasksPage() {
           </div>
         )}
 
-        {!isLoading && user && tasksList.map((task) => {
+        {!isLoading && user && sortedTasks.map((task) => {
           const status = statusMap[task.title];
           const isDone = status === 'approved';
           const isPending = status === 'pending';
@@ -169,7 +178,7 @@ export default function TasksPage() {
           )
         })}
 
-        {!isLoading && user && tasksList.length === 0 && (
+        {!isLoading && user && sortedTasks.length === 0 && (
           <div className="text-center py-10 border-2 border-dashed rounded-3xl opacity-40">
             <p className="text-sm font-medium">No missions for today yet!</p>
           </div>

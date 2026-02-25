@@ -1,4 +1,3 @@
-
 "use client"
 
 import { BottomNav } from "@/components/BottomNav";
@@ -36,10 +35,19 @@ export default function AcademyPage() {
     fetchCompletion();
   }, [user, db]);
 
-  const filteredLessons = lessons?.filter(l => 
-    l.title.toLowerCase().includes(search.toLowerCase()) ||
-    l.category.toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  // Sorting Logic: Uncompleted lessons first
+  const filteredAndSortedLessons = lessons
+    ?.filter(l => 
+      l.title.toLowerCase().includes(search.toLowerCase()) ||
+      l.category.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      const isADone = completedTitles.has(`Completed Lesson: ${a.title}`);
+      const isBDone = completedTitles.has(`Completed Lesson: ${b.title}`);
+      if (isADone && !isBDone) return 1;
+      if (!isADone && isBDone) return -1;
+      return 0;
+    }) || [];
 
   return (
     <main className="min-h-screen pb-24 px-6 pt-12 max-w-md mx-auto">
@@ -67,15 +75,13 @@ export default function AcademyPage() {
           </div>
         )}
 
-        {!isLoading && user && filteredLessons.map((lesson) => {
+        {!isLoading && user && filteredAndSortedLessons.map((lesson) => {
           const isDone = completedTitles.has(`Completed Lesson: ${lesson.title}`);
-          const displayImage = lesson.imageUrl && lesson.imageUrl.startsWith('http') 
-            ? lesson.imageUrl 
-            : "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&q=80&w=800";
+          const displayImage = lesson.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(lesson.title)}/800/600`;
 
           return (
             <Link key={lesson.id} href={`/academy/${lesson.id}`}>
-              <Card className={`overflow-hidden border-none kid-card-shadow relative bg-white group active:scale-95 transition-transform mb-6 ${isDone ? 'opacity-70' : ''}`}>
+              <Card className={`overflow-hidden border-none kid-card-shadow relative bg-white group active:scale-95 transition-transform mb-6 ${isDone ? 'opacity-70 grayscale-[0.5]' : ''}`}>
                 <div className={`diary-tape ${isDone ? 'bg-green-500/20' : 'bg-secondary/20'}`} />
                 <div className="relative h-48 w-full">
                   <Image 
@@ -97,7 +103,7 @@ export default function AcademyPage() {
                 <CardContent className="p-5">
                   <h3 className={`text-xl font-bold mb-2 text-primary ${isDone ? 'line-through opacity-50' : ''}`}>{lesson.title}</h3>
                   <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-medium italic">
-                    {lesson.description || "A deep dive into this amazing topic!"}
+                    {lesson.description || "A deep academic dive into this amazing topic!"}
                   </p>
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">
@@ -113,7 +119,7 @@ export default function AcademyPage() {
           );
         })}
 
-        {!isLoading && user && filteredLessons.length === 0 && (
+        {!isLoading && user && filteredAndSortedLessons.length === 0 && (
           <div className="text-center py-20">
             <Cloud className="w-16 h-16 mx-auto text-primary/10 mb-4" />
             <p className="font-bold text-primary/40">No lessons found matching that!</p>
