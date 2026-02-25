@@ -4,7 +4,7 @@
 import { BottomNav } from "@/components/BottomNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList, Loader2 } from "lucide-react";
+import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList, Loader2, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -75,7 +75,7 @@ export default function Home() {
         </div>
       </header>
 
-      <Card className="bg-white/60 backdrop-blur-sm mb-8 border-none kid-card-shadow relative overflow-hidden">
+      <Card className="bg-white mb-8 border-none kid-card-shadow relative overflow-hidden">
         <div className="diary-tape bg-primary/30" />
         <CardContent className="p-6 flex justify-around items-center">
           <div className="flex flex-col items-center">
@@ -112,10 +112,11 @@ export default function Home() {
           <Link href={`/academy/${featured.id}`}>
             <div className="group relative rounded-3xl overflow-hidden aspect-[16/10] kid-card-shadow transition-transform active:scale-95">
               <Image 
-                src={featured.imageUrl || "https://picsum.photos/seed/featured/800/500"} 
+                src={featured.imageUrl || "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&q=80&w=800"} 
                 alt={featured.title} 
                 fill 
                 className="object-cover group-hover:scale-110 transition-transform duration-500"
+                unoptimized
               />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent flex flex-col justify-end p-6">
                 <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase py-1 px-3 rounded-full w-fit mb-2">
@@ -130,6 +131,26 @@ export default function Home() {
             <p className="text-sm font-bold">Waiting for new lessons...</p>
           </div>
         )}
+      </section>
+
+      <section className="mb-8">
+        <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
+          <Trophy className="text-yellow-500" /> Star Hall
+        </h2>
+        <Button asChild variant="outline" className="w-full h-20 rounded-3xl bg-white border-2 border-yellow-500/10 kid-card-shadow hover:bg-yellow-500/5 group flex justify-between px-6">
+          <Link href="/leaderboard">
+            <div className="flex items-center gap-3">
+               <div className="bg-yellow-500/10 p-2 rounded-xl group-hover:scale-110 transition-transform">
+                <Trophy className="text-yellow-500" />
+              </div>
+              <div className="text-left">
+                <span className="font-bold text-primary">Academy Rankings</span>
+                <p className="text-[10px] text-muted-foreground font-medium">Who is the top explorer?</p>
+              </div>
+            </div>
+            <ArrowRight className="text-primary w-5 h-5" />
+          </Link>
+        </Button>
       </section>
 
       <section className="grid grid-cols-2 gap-4">
@@ -147,14 +168,6 @@ export default function Home() {
               <ClipboardList className="text-secondary" />
             </div>
             <span className="font-bold text-sm">Daily Tasks</span>
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="h-24 flex flex-col gap-1 rounded-3xl bg-white border-2 border-yellow-500/10 kid-card-shadow hover:bg-yellow-500/5 group col-span-2 mt-2">
-          <Link href="/leaderboard" className="flex items-center justify-center gap-3">
-            <div className="bg-yellow-500/10 p-2 rounded-xl group-hover:scale-110 transition-transform">
-              <Trophy className="text-yellow-500" />
-            </div>
-            <span className="font-black text-primary text-lg">Star Hall Leaderboard</span>
           </Link>
         </Button>
       </section>

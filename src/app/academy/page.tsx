@@ -69,13 +69,17 @@ export default function AcademyPage() {
 
         {!isLoading && user && filteredLessons.map((lesson) => {
           const isDone = completedTitles.has(`Completed Lesson: ${lesson.title}`);
+          const displayImage = lesson.imageUrl && lesson.imageUrl.startsWith('http') 
+            ? lesson.imageUrl 
+            : "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&q=80&w=800";
+
           return (
             <Link key={lesson.id} href={`/academy/${lesson.id}`}>
               <Card className={`overflow-hidden border-none kid-card-shadow relative bg-white group active:scale-95 transition-transform mb-6 ${isDone ? 'opacity-70' : ''}`}>
                 <div className={`diary-tape ${isDone ? 'bg-green-500/20' : 'bg-secondary/20'}`} />
                 <div className="relative h-48 w-full">
                   <Image 
-                    src={lesson.imageUrl || "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=800"} 
+                    src={displayImage} 
                     alt={lesson.title} 
                     fill 
                     className="object-cover group-hover:scale-105 transition-transform"

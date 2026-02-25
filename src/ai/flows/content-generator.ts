@@ -17,7 +17,7 @@ const LessonSchema = z.object({
   title: z.string(),
   category: z.string(),
   description: z.string().describe("A 2-sentence summary of the lesson."),
-  content: z.string().describe("Deep, long-form educational content. Must include sections like 'Introduction', 'Types', 'Advantages', and 'Summary'."),
+  content: z.string().describe("Deep, long-form educational content. Must include sections like '1. Introduction', '2. Types & Categories', '3. Advantages & Importance', '4. Fun Facts', and '5. Summary'."),
   imageUrl: z.string(),
 });
 
@@ -44,12 +44,21 @@ const contentGeneratorFlow = ai.defineFlow(
   },
   async (input) => {
     const promptText = input.type === 'lessons' 
-      ? `Generate ${input.count} extremely detailed educational lessons for children aged 8-12. 
-         Idea/Topic focus: ${input.idea || 'General Science, Nature, and History'}.
-         The 'content' field must be long (at least 300 words) and structured like a real school note. 
-         Include: 1. Introduction, 2. Types/Categories of the topic, 3. Advantages or Importance, 4. Fun Facts, 5. Summary.
-         Use simple but academic language.
-         For each, provide a realistic imageUrl from Unsplash (https://images.unsplash.com/photo-...) that actually relates to the topic.
+      ? `Generate ${input.count} extremely detailed academic educational lessons for children aged 8-12. 
+         Idea/Topic focus: ${input.idea || 'Science, History, and Nature'}.
+         The 'content' field must be at least 400 words long. Structure it like a real student notebook:
+         1. INTRODUCTION: Clear explanation of what the topic is.
+         2. TYPES/CATEGORIES: Different kinds of this topic with explanations.
+         3. ADVANTAGES: Why is this important or what are the benefits?
+         4. FUN FACTS: 3 surprising facts.
+         5. SUMMARY: A short closing summary.
+         
+         IMPORTANT: For the imageUrl, use a real, high-resolution Unsplash photo URL. 
+         DO NOT use "..." or placeholders. Use verified Unsplash links like:
+         https://images.unsplash.com/photo-1446776811953-b23d57bd21aa (Space)
+         https://images.unsplash.com/photo-1441974231531-c6227db76b6e (Nature)
+         https://images.unsplash.com/photo-1532094349884-543bc11b234d (Science)
+         Pick appropriate ones for the content.
          Return as JSON.`
       : `Generate ${input.count} fun tasks/missions for children based on this idea: ${input.idea || 'helping at home and learning'}. 
          Examples: "Read 10 pages of a history book", "Clean your study desk", "Identify 3 types of leaves in your garden". 
