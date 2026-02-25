@@ -1,168 +1,35 @@
-/**
- * SKYBOUNDKIDS ACADEMY SECURITY RULES
- *
- * Core Philosophy:
- * This ruleset implements a dual-layered security model. Child users are restricted to a strict 
- * user-ownership model for their profiles and activity tracking. Curriculum content (Lessons, 
- * Quizzes, Tasks, and Labs) is globally readable by authenticated students but strictly 
- * modifiable only by users verified as Administrators.
- *
- * Data Structure:
- * - /userProfiles/{userId}: Private user data and subcollections (Activities).
- * - /lessons, /quizzes, /tasks, /labs: Top-level public educational content.
- * - /roles_admin/{adminId}: A Database Access Control (DBAC) registry for admin privileges.
- *
- * Key Security Decisions:
- * 1. Admin Verification: Admin status is determined by the existence of a document in the 
- *    `roles_admin` collection matching the user's UID.
- * 2. Denormalization for Authorization: To ensure authorization independence and avoid 
- *    expensive recursive lookups, `userId` is stored on activity documents and `adminId` 
- *    is stored on curriculum documents.
- * 3. Prototyping Flexibility: Rules enforce WHO can write but do not strictly validate 
- *    the schema of the content (e.g., description length or valid HTML) to allow rapid iteration.
- * 4. Structural Segregation: User progress is nested under their profile path, ensuring 
- *    that 'list' operations are naturally scoped to the owner.
- */
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)); }
 
-    // --- Helper Functions ---
-
-    /** @description Checks if the user is authenticated. */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /** @description Checks if the authenticated user matches the provided userId. */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /** @description Checks if the document exists and the user is the owner. */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    /** @description Checks if the authenticated user has an entry in the admin roles collection. */
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    /** @description Verifies that a field in the incoming data is immutable. */
-    function isUnchanged(fieldName) {
-      return request.resource.data[fieldName] == resource.data[fieldName];
-    }
-
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for child user profiles. Owners can manage their own profile.
-     * @path /userProfiles/{userId}
-     * @allow (create) if auth.uid == "user_123" and userId == "user_123"
-     * @deny (read) if auth.uid == "user_456" trying to read "user_123"
-     * @principle Enforces path-based ownership for user identities.
-     */
-    match /userProfiles/{userId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && isUnchanged('id');
-      allow delete: if isExistingOwner(userId);
-
-      /**
-       * @description Progress tracking for specific lessons/quizzes. Private to the user.
-       * @path /userProfiles/{userId}/activities/{activityId}
-       * @allow (list) if auth.uid == userId
-       * @deny (create) if request.resource.data.userId != userId
-       * @principle Ensures data consistency between the path and internal ownership fields.
-       */
-      match /activities/{activityId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isExistingOwner(userId) && isUnchanged('userId');
-        allow delete: if isExistingOwner(userId);
-      }
-    }
-
-    /**
-     * @description Educational lessons. Readable by all students; writable only by admins.
-     * @path /lessons/{lessonId}
-     * @allow (get) if isSignedIn()
-     * @deny (update) if isAdmin() is false
-     * @principle Public consumption with authorized administrative control.
-     */
-    match /lessons/{lessonId} {
-      allow get, list: if isSignedIn();
-      allow create: if isAdmin() && request.resource.data.adminId == request.auth.uid;
-      allow update: if isAdmin() && resource.data.adminId == request.auth.uid;
-      allow delete: if isAdmin() && resource.data.adminId == request.auth.uid;
-    }
-
-    /**
-     * @description Quizzes associated with lessons. Public read, Admin write.
-     * @path /quizzes/{quizId}
-     * @allow (list) if isSignedIn()
-     * @deny (delete) if requester is not in roles_admin
-     * @principle Uses DBAC (Database Access Control) for curriculum management.
-     */
-    match /quizzes/{quizId} {
-      allow get, list: if isSignedIn();
-      allow create: if isAdmin() && request.resource.data.adminId == request.auth.uid;
-      allow update: if isAdmin() && resource.data.adminId == request.auth.uid;
-      allow delete: if isAdmin() && resource.data.adminId == request.auth.uid;
-
-      /**
-       * @description Individual questions within a quiz. Relies on denormalized adminId.
-       * @path /quizzes/{quizId}/questions/{questionId}
-       * @allow (create) if isAdmin() and request.resource.data.adminId == auth.uid
-       * @principle Authorization independence via denormalized ownership fields.
-       */
-      match /questions/{questionId} {
-        allow get, list: if isSignedIn();
-        allow create: if isAdmin() && request.resource.data.adminId == request.auth.uid;
-        allow update: if isAdmin() && resource.data.adminId == request.auth.uid;
-        allow delete: if isAdmin() && resource.data.adminId == request.auth.uid;
-      }
-    }
-
-    /**
-     * @description Practical tasks for kids. Public read, Admin write.
-     * @path /tasks/{taskId}
-     * @allow (get) if isSignedIn()
-     * @principle Standard curriculum access pattern.
-     */
-    match /tasks/{taskId} {
-      allow get, list: if isSignedIn();
-      allow create: if isAdmin() && request.resource.data.adminId == request.auth.uid;
-      allow update: if isAdmin() && resource.data.adminId == request.auth.uid;
-      allow delete: if isAdmin() && resource.data.adminId == request.auth.uid;
-    }
-
-    /**
-     * @description Experimental lab activities. Public read, Admin write.
-     * @path /labs/{labId}
-     * @allow (create) if isAdmin()
-     * @principle Standard curriculum access pattern.
-     */
-    match /labs/{labId} {
-      allow get, list: if isSignedIn();
-      allow create: if isAdmin() && request.resource.data.adminId == request.auth.uid;
-      allow update: if isAdmin() && resource.data.adminId == request.auth.uid;
-      allow delete: if isAdmin() && resource.data.adminId == request.auth.uid;
-    }
-
-    /**
-     * @description Admin role registry. Strictly controlled.
-     * @path /roles_admin/{adminId}
-     * @allow (get) if isSignedIn()
-     * @deny (write) always (Admin roles should be managed via secure backend/console)
-     * @principle Protects the integrity of the authorization lookup table.
-     */
-    match /roles_admin/{adminId} {
+    match /users/{userId} {
       allow get: if isSignedIn();
       allow list: if isAdmin();
-      allow create, update, delete: if false; 
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    match /lessons/{lessonId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /submissions/{submissionId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /roles_admin/{adminId} {
+      allow get: if isSignedIn();
+      allow list, write: if false; // Managed via Firebase Console
     }
   }
 }

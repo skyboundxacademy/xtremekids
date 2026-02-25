@@ -8,25 +8,38 @@ import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList } from "luci
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useDoc } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false);
-  const { user } = useUser();
+  const router = useRouter();
+  const { user, isUserLoading } = useUser();
   const db = useFirestore();
+  const [mounted, setMounted] = useState(false);
   
-  // Get real user profile data
   const userProfileRef = user ? doc(db, 'users', user.uid) : null;
   const { data: profile } = useDoc<any>(userProfileRef);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
 
-  if (!mounted) return null;
+  if (!mounted || isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Sparkles className="w-12 h-12 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <main className="min-h-screen pb-24 px-6 pt-12 max-w-md mx-auto">
-      {/* Header section */}
       <header className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
@@ -49,7 +62,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Stats Card */}
       <Card className="bg-white/60 backdrop-blur-sm mb-8 border-none kid-card-shadow relative overflow-hidden">
         <div className="diary-tape bg-primary/30" />
         <CardContent className="p-6 flex justify-around items-center">
@@ -71,7 +83,6 @@ export default function Home() {
         </CardContent>
       </Card>
 
-      {/* Featured Lesson */}
       <section className="mb-8">
         <div className="flex justify-between items-end mb-4">
           <h2 className="text-xl font-bold flex items-center gap-2">
@@ -98,7 +109,6 @@ export default function Home() {
         </Link>
       </section>
 
-      {/* Quick Actions */}
       <section className="grid grid-cols-2 gap-4">
         <Button asChild variant="outline" className="h-24 flex flex-col gap-1 rounded-3xl bg-white border-2 border-primary/5 kid-card-shadow hover:bg-primary/5 group">
           <Link href="/lab">

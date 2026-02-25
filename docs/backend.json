@@ -1,9 +1,10 @@
+
 {
   "entities": {
     "UserProfile": {
       "title": "UserProfile",
       "type": "object",
-      "description": "Child explorer profile tracking their progress and stars.",
+      "description": "Student profile tracking progress and star rewards.",
       "properties": {
         "displayName": { "type": "string" },
         "totalStars": { "type": "number" },
@@ -16,30 +17,44 @@
     "Lesson": {
       "title": "Lesson",
       "type": "object",
-      "description": "Educational lesson content.",
+      "description": "Educational lesson content managed by admins.",
       "properties": {
         "title": { "type": "string" },
         "category": { "type": "string" },
         "description": { "type": "string" },
         "content": { "type": "string" },
         "imageUrl": { "type": "string" },
+        "adminId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["title", "content", "category"]
+      "required": ["title", "content", "category", "adminId"]
     },
     "Submission": {
       "title": "Submission",
       "type": "object",
-      "description": "A student's task submission waiting for admin marking.",
+      "description": "Student task submission awaiting marking.",
       "properties": {
         "userId": { "type": "string" },
         "userName": { "type": "string" },
         "taskTitle": { "type": "string" },
         "points": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "timestamp": { "type": "string", "format": "date-time" },
+        "adminId": { "type": "string", "description": "The admin who marks this." }
       },
       "required": ["userId", "userName", "taskTitle", "status"]
+    },
+    "Task": {
+      "title": "Task",
+      "type": "object",
+      "description": "A specific mission or challenge for students.",
+      "properties": {
+        "title": { "type": "string" },
+        "points": { "type": "number" },
+        "type": { "type": "string", "enum": ["daily", "weekly"] },
+        "adminId": { "type": "string" }
+      },
+      "required": ["title", "points", "type", "adminId"]
     }
   },
   "auth": {
@@ -48,15 +63,27 @@
   "firestore": {
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/UserProfile" },
-      "description": "Private student profiles."
+      "description": "Private student progress profiles."
     },
     "/lessons/{lessonId}": {
       "schema": { "$ref": "#/backend/entities/Lesson" },
-      "description": "Public educational lessons."
+      "description": "Public educational curriculum."
     },
     "/submissions/{submissionId}": {
       "schema": { "$ref": "#/backend/entities/Submission" },
-      "description": "Task submissions for marking."
+      "description": "Marking queue for student assignments."
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/backend/entities/Task" },
+      "description": "Available missions for students."
+    },
+    "/roles_admin/{adminId}": {
+      "schema": { 
+        "title": "AdminMarker",
+        "type": "object",
+        "properties": { "adminId": { "type": "string" } }
+      },
+      "description": "Authorization list for professor access."
     }
   }
 }
