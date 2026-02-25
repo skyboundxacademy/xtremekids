@@ -17,19 +17,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /tasks/{taskId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
     match /submissions/{submissionId} {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isAdmin();
     }
 
     match /roles_admin/{adminId} {
       allow get: if isSignedIn();
-      allow list, write: if false; // Managed via Firebase Console
+      allow list, write: if false; 
     }
   }
 }

@@ -10,7 +10,7 @@ import { ArrowLeft, Plus, Save, Trash2, LayoutDashboard, CheckCircle, XCircle, U
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useCollection } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, increment, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -20,8 +20,11 @@ export default function AdminPage() {
   const db = useFirestore();
   const [loading, setLoading] = useState(false);
 
-  // Real-time submissions
-  const submissionsQuery = useMemo(() => query(collection(db, 'submissions'), orderBy('timestamp', 'desc')), [db]);
+  // Real-time submissions query memoized correctly
+  const submissionsQuery = useMemoFirebase(() => {
+    return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
+  }, [db]);
+  
   const { data: submissions } = useCollection<any>(submissionsQuery);
 
   // Lesson State

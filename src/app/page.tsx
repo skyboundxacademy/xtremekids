@@ -9,7 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useFirestore, useDoc } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 export default function Home() {
@@ -18,7 +18,10 @@ export default function Home() {
   const db = useFirestore();
   const [mounted, setMounted] = useState(false);
   
-  const userProfileRef = user ? doc(db, 'users', user.uid) : null;
+  const userProfileRef = useMemoFirebase(() => {
+    return user ? doc(db, 'users', user.uid) : null;
+  }, [db, user]);
+  
   const { data: profile } = useDoc<any>(userProfileRef);
 
   useEffect(() => {

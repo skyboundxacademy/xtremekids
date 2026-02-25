@@ -24,10 +24,9 @@
         "description": { "type": "string" },
         "content": { "type": "string" },
         "imageUrl": { "type": "string" },
-        "adminId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["title", "content", "category", "adminId"]
+      "required": ["title", "content", "category"]
     },
     "Submission": {
       "title": "Submission",
@@ -39,22 +38,9 @@
         "taskTitle": { "type": "string" },
         "points": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "adminId": { "type": "string", "description": "The admin who marks this." }
+        "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "userName", "taskTitle", "status"]
-    },
-    "Task": {
-      "title": "Task",
-      "type": "object",
-      "description": "A specific mission or challenge for students.",
-      "properties": {
-        "title": { "type": "string" },
-        "points": { "type": "number" },
-        "type": { "type": "string", "enum": ["daily", "weekly"] },
-        "adminId": { "type": "string" }
-      },
-      "required": ["title", "points", "type", "adminId"]
     }
   },
   "auth": {
@@ -72,10 +58,6 @@
     "/submissions/{submissionId}": {
       "schema": { "$ref": "#/backend/entities/Submission" },
       "description": "Marking queue for student assignments."
-    },
-    "/tasks/{taskId}": {
-      "schema": { "$ref": "#/backend/entities/Task" },
-      "description": "Available missions for students."
     },
     "/roles_admin/{adminId}": {
       "schema": { 
