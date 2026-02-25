@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, CheckCircle, XCircle, Users, Upload, LayoutDashboard, Star, BookOpen, ClipboardList, Lightbulb, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, CheckCircle, XCircle, LayoutDashboard, BookOpen, ClipboardList, Lightbulb, Trash2, Upload } from "lucide-react";
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, increment, query, orderBy, serverTimestamp, deleteDoc } from "firebase/firestore";
@@ -21,7 +21,6 @@ export default function AdminPage() {
   const db = useFirestore();
   const [loading, setLoading] = useState(false);
 
-  // Real-time queries
   const submissionsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
@@ -34,7 +33,6 @@ export default function AdminPage() {
   }, [db, user]);
   const { data: lessons } = useCollection<any>(lessonsQuery);
 
-  // Lesson State
   const [newLesson, setNewLesson] = useState({
     title: '',
     category: 'Space',
@@ -43,14 +41,12 @@ export default function AdminPage() {
     imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800'
   });
 
-  // Task State
   const [newTask, setNewTask] = useState({
     title: '',
     points: 50,
     type: 'daily'
   });
 
-  // Quiz State
   const [newQuiz, setNewQuiz] = useState({
     title: '',
     questions: [
@@ -93,6 +89,13 @@ export default function AdminPage() {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'tasks', operation: 'create', requestResourceData: newTask }));
       })
       .finally(() => setLoading(false));
+  };
+
+  const handleAddQuestion = () => {
+    setNewQuiz({
+      ...newQuiz,
+      questions: [...newQuiz.questions, { question: '', options: ['', '', ''], correctAnswer: 0 }]
+    });
   };
 
   const handleAddQuiz = () => {
@@ -277,22 +280,47 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <Input value={newQuiz.title} onChange={(e) => setNewQuiz({...newQuiz, title: e.target.value})} placeholder="Quiz Title" />
-              {newQuiz.questions.map((q, idx) => (
-                <div key={idx} className="p-4 border rounded-xl space-y-2">
-                  <Input value={q.question} onChange={(e) => {
-                    const qs = [...newQuiz.questions];
-                    qs[idx].question = e.target.value;
-                    setNewQuiz({...newQuiz, questions: qs});
-                  }} placeholder={`Question ${idx + 1}`} />
-                  {q.options.map((opt, oIdx) => (
-                    <Input key={oIdx} value={opt} onChange={(e) => {
+              <div className="space-y-4">
+                {newQuiz.questions.map((q, idx) => (
+                  <div key={idx} className="p-4 border rounded-xl space-y-2 bg-slate-50 relative">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-2 right-2 text-muted-foreground"
+                      onClick={() => {
+                        const qs = [...newQuiz.questions];
+                        qs.splice(idx, 1);
+                        setNewQuiz({...newQuiz, questions: qs});
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                    <Input value={q.question} onChange={(e) => {
                       const qs = [...newQuiz.questions];
-                      qs[idx].options[oIdx] = e.target.value;
+                      qs[idx].question = e.target.value;
                       setNewQuiz({...newQuiz, questions: qs});
-                    }} placeholder={`Option ${oIdx + 1}`} />
-                  ))}
-                </div>
-              ))}
+                    }} placeholder={`Question ${idx + 1}`} />
+                    {q.options.map((opt, oIdx) => (
+                      <Input key={oIdx} value={opt} onChange={(e) => {
+                        const qs = [...newQuiz.questions];
+                        qs[idx].options[oIdx] = e.target.value;
+                        setNewQuiz({...newQuiz, questions: qs});
+                      }} placeholder={`Option ${oIdx + 1}`} />
+                    ))}
+                    <div className="flex items-center gap-2 pt-2">
+                      <span className="text-xs font-bold">Correct Index:</span>
+                      <Input type="number" min="0" max="2" value={q.correctAnswer} onChange={(e) => {
+                        const qs = [...newQuiz.questions];
+                        qs[idx].correctAnswer = parseInt(e.target.value);
+                        setNewQuiz({...newQuiz, questions: qs});
+                      }} className="w-20 h-8" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button variant="outline" onClick={handleAddQuestion} className="w-full rounded-xl gap-2 border-dashed">
+                <Plus className="w-4 h-4" /> Add Question
+              </Button>
               <Button onClick={handleAddQuiz} disabled={loading} className="w-full rounded-xl bg-yellow-500 hover:bg-yellow-600">Create Quiz</Button>
             </CardContent>
           </Card>
