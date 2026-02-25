@@ -2,6 +2,7 @@
 /**
  * @fileOverview A Genkit flow to auto-generate deep, academic educational lessons and tasks for children.
  * Enforces deep academic structure (500+ words, Intro, Types, Advantages, Fun Facts).
+ * Uses a deterministic image engine to ensure real, high-quality images.
  */
 
 import { ai } from '@/ai/genkit';
@@ -52,10 +53,10 @@ const contentGeneratorFlow = ai.defineFlow(
          2. TYPES & CLASSIFICATIONS: Detailed list of categories or variations.
          3. ADVANTAGES & DISADVANTAGES: Why is this important? What are the risks?
          4. THE FUTURE: How will this topic change in 20 years?
-         5. FUN FACTS: 5 surpising facts for kids.
+         5. FUN FACTS: 5 surprising facts for kids.
          6. SUMMARY: A wrap-up.
          
-         IMAGE RULE: Provide a placeholder string that represents the subject.
+         IMAGE RULE: Do not provide a URL. Just provide a single keyword representing the subject.
          
          Return as JSON.`
       : `Generate ${input.count} fun daily tasks/missions for children based on this idea: ${input.idea || 'helping at home and learning'}. 
@@ -68,10 +69,12 @@ const contentGeneratorFlow = ai.defineFlow(
       output: { schema: ContentGeneratorOutputSchema },
     });
 
-    // POST-PROCESS: Ensure high-quality images based on titles
+    // POST-PROCESS: Deterministic Image Engine
+    // We use picsum.photos/seed with the title to ensure we get a real, high-quality image every time.
     if (output?.lessons) {
       output.lessons = output.lessons.map(l => {
-        const safeSeed = encodeURIComponent(l.title.replace(/\s+/g, '-').toLowerCase());
+        // Create a safe, unique seed from the title
+        const safeSeed = l.title.toLowerCase().replace(/[^a-z0-9]/g, '-');
         return {
           ...l,
           imageUrl: `https://picsum.photos/seed/${safeSeed}/800/600`

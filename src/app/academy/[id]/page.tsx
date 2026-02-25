@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useParams, useRouter } from "next/navigation";
@@ -63,21 +62,30 @@ export default function LessonDetailPage() {
       timestamp: serverTimestamp()
     };
 
+    // Non-blocking Firestore write
     addDoc(collection(db, "submissions"), submissionData)
       .then(async () => {
+        // AI Encouragement is separate and asynchronous
         try {
           await generateEncouragement({
             childName: user.displayName || "Explorer",
             contentType: "lesson",
             contentTitle: lesson.title
           });
-        } catch (e) {}
+        } catch (e) {
+          // AI errors shouldn't break the lesson flow
+        }
+        
         toast({ title: "Lesson Finished!", description: "Professor Sky will award your badge soon!" });
         setIsCompleted(true);
         router.push('/academy');
       })
       .catch(async () => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'submissions', operation: 'create', requestResourceData: submissionData }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: 'submissions', 
+          operation: 'create', 
+          requestResourceData: submissionData 
+        }));
       })
       .finally(() => setIsSubmitting(false));
   };
@@ -113,6 +121,7 @@ export default function LessonDetailPage() {
           </div>
         </div>
 
+        {/* LONG FORM ACADEMIC CONTENT */}
         <div className="prose prose-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap">
           {lesson.content}
         </div>
@@ -120,7 +129,7 @@ export default function LessonDetailPage() {
         <div className="mt-12">
           {isCompleted ? (
             <div className="w-full flex items-center justify-center gap-2 h-14 bg-green-500/10 text-green-600 rounded-2xl font-bold text-lg border-2 border-green-500/20">
-              <CheckCircle2 className="w-6 h-6" /> Lesson Finished!
+              <CheckCircle2 className="w-6 h-6" /> Mission Already Done!
             </div>
           ) : (
             <Button onClick={handleFinish} disabled={isSubmitting} className="w-full rounded-2xl h-14 bg-primary font-bold text-lg kid-card-shadow">

@@ -18,7 +18,7 @@ export default function TasksPage() {
   const db = useFirestore();
   const { toast } = useToast();
   const [submittingId, setSubmittingId] = useState<string | null>(null);
-  const [statusMap, setStatusMap] = useState<Record<string, 'pending' | 'approved' | null>>({});
+  const [statusMap, setStatusMap] = useState<Record<string, 'pending' | 'approved' | 'rejected' | null>>({});
 
   const tasksQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -35,9 +35,10 @@ export default function TasksPage() {
         where("userId", "==", user.uid)
       );
       const snapshot = await getDocs(q);
-      const newMap: Record<string, 'pending' | 'approved' | null> = {};
+      const newMap: Record<string, 'pending' | 'approved' | 'rejected' | null> = {};
       snapshot.docs.forEach(doc => {
         const data = doc.data();
+        // Priority for approved status
         if (data.status === 'approved' || !newMap[data.taskTitle]) {
            newMap[data.taskTitle] = data.status;
         }
@@ -78,13 +79,13 @@ export default function TasksPage() {
       .finally(() => setSubmittingId(null));
   };
 
-  // Sorting Logic: Pending/Approved at the bottom
+  // Sorting Logic: UNDONE (null/not-in-map) tasks first, then pending/approved
   const sortedTasks = (tasks || []).sort((a, b) => {
     const statusA = statusMap[a.title];
     const statusB = statusMap[b.title];
     
-    const isDoneA = statusA === 'approved' || statusA === 'pending';
-    const isDoneB = statusB === 'approved' || statusB === 'pending';
+    const isDoneA = !!statusA;
+    const isDoneB = !!statusB;
 
     if (isDoneA && !isDoneB) return 1;
     if (!isDoneA && isDoneB) return -1;

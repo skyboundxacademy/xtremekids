@@ -27,10 +27,10 @@ export default function AcademyPage() {
   useEffect(() => {
     if (!user) return;
     const fetchCompletion = async () => {
+      // Check both pending and approved submissions to prevent re-submission
       const q = query(
         collection(db, "submissions"), 
-        where("userId", "==", user.uid),
-        where("status", "==", "approved")
+        where("userId", "==", user.uid)
       );
       const snapshot = await getDocs(q);
       const titles = new Set(snapshot.docs.map(doc => doc.data().taskTitle));
@@ -39,15 +39,18 @@ export default function AcademyPage() {
     fetchCompletion();
   }, [user, db]);
 
-  // Sorting Logic: UNDONE lessons first
+  // Sorting Logic: UNDONE lessons first, then by creation date
   const filteredAndSortedLessons = lessons
     ?.filter(l => 
       l.title.toLowerCase().includes(search.toLowerCase()) ||
       l.category.toLowerCase().includes(search.toLowerCase())
     )
     .sort((a, b) => {
-      const isADone = completedTitles.has(`Completed Lesson: ${a.title}`);
-      const isBDone = completedTitles.has(`Completed Lesson: ${b.title}`);
+      const aTitle = `Completed Lesson: ${a.title}`;
+      const bTitle = `Completed Lesson: ${b.title}`;
+      const isADone = completedTitles.has(aTitle);
+      const isBDone = completedTitles.has(bTitle);
+      
       if (isADone && !isBDone) return 1;
       if (!isADone && isBDone) return -1;
       return 0;
@@ -96,7 +99,7 @@ export default function AcademyPage() {
                     unoptimized
                   />
                   <Badge className={`absolute top-4 left-4 border-none ${isDone ? 'bg-green-600' : 'bg-primary/80 backdrop-blur-md'}`}>
-                    {isDone ? 'Earned' : lesson.category}
+                    {isDone ? 'Finished' : lesson.category}
                   </Badge>
                   {isDone && (
                     <div className="absolute top-4 right-4 bg-white rounded-full p-1 shadow-lg">
@@ -111,7 +114,7 @@ export default function AcademyPage() {
                   </p>
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">
-                      {isDone ? 'View Again' : 'Unlock Badge'}
+                      {isDone ? 'Review Lesson' : 'Earn Badge'}
                     </span>
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
                       <ArrowRight className="w-4 h-4" />
