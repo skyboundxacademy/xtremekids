@@ -3,7 +3,7 @@
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Cloud, Star, Sparkles, Trophy } from "lucide-react";
+import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
