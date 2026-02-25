@@ -30,7 +30,6 @@ export default function AdminPage() {
   }, [db, user]);
   const { data: profile } = useDoc<any>(userProfileRef);
 
-  // Master Admin: Tochi
   const isAdmin = user?.email === 'goddikrayz@gmail.com' || profile?.role === 'admin';
 
   useEffect(() => {
@@ -55,11 +54,9 @@ export default function AdminPage() {
 
   const handleAutoGenerate = async (type: 'lessons' | 'tasks') => {
     setLoading(true);
-    toast({ title: "Summoning Guru AI...", description: `Building ${type} for "${idea || 'everything'}"` });
+    toast({ title: "Summoning Guru AI...", description: `Building 5 ${type} for "${idea || 'everything'}"` });
     try {
-      // 15 Lessons or 20 Tasks as requested
-      const count = type === 'lessons' ? 15 : 20;
-      const result = await generateBulkContent({ type, count, idea });
+      const result = await generateBulkContent({ type, count: 5, idea });
       const items = type === 'lessons' ? result.lessons : result.tasks;
       
       if (items) {
@@ -86,13 +83,11 @@ export default function AdminPage() {
     updateDoc(doc(db, 'submissions', submission.id), { status: 'approved' })
       .then(() => {
         if (isLesson && badgeName) {
-          // Lessons give Badges
           updateDoc(doc(db, 'users', submission.userId), { 
             badges: arrayUnion(badgeName)
           }).catch(() => {});
           toast({ title: "Academic Badge Awarded!" });
         } else {
-          // Tasks give Stars
           updateDoc(doc(db, 'users', submission.userId), { 
             totalStars: increment(submission.points || 0) 
           }).catch(() => {});
@@ -137,10 +132,10 @@ export default function AdminPage() {
               />
               <div className="flex gap-2">
                 <Button onClick={() => handleAutoGenerate('lessons')} disabled={loading} className="bg-primary gap-2 rounded-xl h-12 px-6">
-                  {loading ? <Loader2 className="animate-spin" /> : <BookOpen className="w-4 h-4" />} Create Lessons (15)
+                  {loading ? <Loader2 className="animate-spin" /> : <BookOpen className="w-4 h-4" />} Create Lessons (5)
                 </Button>
                 <Button onClick={() => handleAutoGenerate('tasks')} disabled={loading} variant="outline" className="gap-2 rounded-xl h-12 px-6">
-                  {loading ? <Loader2 className="animate-spin" /> : <ClipboardList className="w-4 h-4" />} Create Missions (20)
+                  {loading ? <Loader2 className="animate-spin" /> : <ClipboardList className="w-4 h-4" />} Create Missions (5)
                 </Button>
               </div>
             </div>

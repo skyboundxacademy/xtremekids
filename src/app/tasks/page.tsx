@@ -38,7 +38,6 @@ export default function TasksPage() {
       const newMap: Record<string, 'pending' | 'approved' | 'rejected' | null> = {};
       snapshot.docs.forEach(doc => {
         const data = doc.data();
-        // Priority for approved status
         if (data.status === 'approved' || !newMap[data.taskTitle]) {
            newMap[data.taskTitle] = data.status;
         }
@@ -79,7 +78,6 @@ export default function TasksPage() {
       .finally(() => setSubmittingId(null));
   };
 
-  // Sorting Logic: UNDONE (null/not-in-map) tasks first, then pending/approved
   const sortedTasks = (tasks || []).sort((a, b) => {
     const statusA = statusMap[a.title];
     const statusB = statusMap[b.title];

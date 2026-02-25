@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview A Genkit flow to auto-generate deep, academic educational lessons and tasks for children.
- * Enforces deep academic structure (500+ words, Intro, Types, Advantages, Fun Facts).
+ * Enforces deep academic structure (at least 500 words, Intro, Types, Advantages, Fun Facts, Summary).
  * Uses a deterministic image engine to ensure real, high-quality images.
  */
 
@@ -10,7 +10,7 @@ import { z } from 'genkit';
 
 const ContentGeneratorInputSchema = z.object({
   type: z.enum(['lessons', 'tasks']),
-  count: z.number().min(1).max(20),
+  count: z.number().min(1).max(10), // Reduced max to 10 for stability
   idea: z.string().optional().describe("Admin's specific topic or idea to guide the generation."),
 });
 
@@ -56,11 +56,10 @@ const contentGeneratorFlow = ai.defineFlow(
          5. FUN FACTS: 5 surprising facts for kids.
          6. SUMMARY: A wrap-up.
          
-         IMAGE RULE: Do not provide a URL. Just provide a single keyword representing the subject.
+         IMAGE RULE: Provide a single keyword representing the subject.
          
          Return as JSON.`
       : `Generate ${input.count} fun daily tasks/missions for children based on this idea: ${input.idea || 'helping at home and learning'}. 
-         Examples: "Read 10 pages of a history book", "Identify 3 constellations", "Help clean the living room". 
          Points should be between 20 and 100. 
          Return as JSON.`;
 
@@ -69,11 +68,8 @@ const contentGeneratorFlow = ai.defineFlow(
       output: { schema: ContentGeneratorOutputSchema },
     });
 
-    // POST-PROCESS: Deterministic Image Engine
-    // We use picsum.photos/seed with the title to ensure we get a real, high-quality image every time.
     if (output?.lessons) {
       output.lessons = output.lessons.map(l => {
-        // Create a safe, unique seed from the title
         const safeSeed = l.title.toLowerCase().replace(/[^a-z0-9]/g, '-');
         return {
           ...l,

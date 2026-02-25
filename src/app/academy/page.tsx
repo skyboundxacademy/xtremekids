@@ -27,7 +27,6 @@ export default function AcademyPage() {
   useEffect(() => {
     if (!user) return;
     const fetchCompletion = async () => {
-      // Check both pending and approved submissions to prevent re-submission
       const q = query(
         collection(db, "submissions"), 
         where("userId", "==", user.uid)
@@ -39,7 +38,6 @@ export default function AcademyPage() {
     fetchCompletion();
   }, [user, db]);
 
-  // Sorting Logic: UNDONE lessons first, then by creation date
   const filteredAndSortedLessons = lessons
     ?.filter(l => 
       l.title.toLowerCase().includes(search.toLowerCase()) ||
