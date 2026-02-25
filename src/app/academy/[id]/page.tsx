@@ -2,17 +2,16 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation";
-import { mockLessons } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Sparkles, ArrowRight } from "lucide-react";
+import { ChevronLeft, Sparkles, ArrowRight, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { lessonKeyTakeaways } from "@/ai/flows/lesson-key-takeaways";
 import { generateEncouragement } from "@/ai/flows/ai-encouragement";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useUser, useFirestore } from "@/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { collection, addDoc, serverTimestamp, doc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -22,13 +21,24 @@ export default function LessonDetailPage() {
   const { toast } = useToast();
   const { user } = useUser();
   const db = useFirestore();
-  const lesson = mockLessons.find(l => l.id === id);
+
+  const lessonRef = useMemoFirebase(() => {
+    return id ? doc(db, 'lessons', id as string) : null;
+  }, [db, id]);
+
+  const { data: lesson, isLoading: isLessonLoading } = useDoc<any>(lessonRef);
   
   const [takeaway, setTakeaway] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!lesson) return <div>Lesson not found</div>;
+  if (isLessonLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+    </div>
+  );
+
+  if (!lesson) return <div className="p-10 text-center font-bold">Lesson not found</div>;
 
   const handleSummarize = async () => {
     setIsSummarizing(true);
@@ -46,12 +56,11 @@ export default function LessonDetailPage() {
     if (!user) return;
     setIsSubmitting(true);
     
-    // Create a real submission in Firestore for the Admin to mark
     const submissionData = {
       userId: user.uid,
       userName: user.displayName || "Explorer",
       taskTitle: `Completed Lesson: ${lesson.title}`,
-      points: 25, // Fixed points for lessons
+      points: 25,
       status: "pending",
       timestamp: serverTimestamp()
     };
@@ -90,7 +99,7 @@ export default function LessonDetailPage() {
       </button>
 
       <div className="relative h-72 w-full">
-        <Image src={lesson.imageUrl} alt={lesson.title} fill className="object-cover" />
+        <Image src={lesson.imageUrl || "https://picsum.photos/seed/placeholder/600/400"} alt={lesson.title} fill className="object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
       </div>
 
@@ -100,7 +109,7 @@ export default function LessonDetailPage() {
         </span>
         <h1 className="text-3xl font-bold text-primary mb-6">{lesson.title}</h1>
         
-        <div className="prose prose-purple font-medium text-muted-foreground leading-relaxed mb-10">
+        <div className="prose prose-purple font-medium text-muted-foreground leading-relaxed mb-10 whitespace-pre-wrap">
           <p>{lesson.content}</p>
         </div>
 

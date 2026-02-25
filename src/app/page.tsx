@@ -4,13 +4,13 @@
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList } from "lucide-react";
+import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
+import { doc, collection, query, limit, orderBy } from "firebase/firestore";
 
 export default function Home() {
   const router = useRouter();
@@ -23,6 +23,13 @@ export default function Home() {
   }, [db, user]);
   
   const { data: profile } = useDoc<any>(userProfileRef);
+
+  const featuredQuery = useMemoFirebase(() => {
+    return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'), limit(1));
+  }, [db]);
+
+  const { data: featuredLessons, isLoading: isFeaturedLoading } = useCollection<any>(featuredQuery);
+  const featured = featuredLessons?.[0];
 
   useEffect(() => {
     setMounted(true);
@@ -93,23 +100,34 @@ export default function Home() {
           </h2>
           <Link href="/academy" className="text-xs font-bold text-primary">See All</Link>
         </div>
-        <Link href="/academy">
-          <div className="group relative rounded-3xl overflow-hidden aspect-[16/10] kid-card-shadow transition-transform active:scale-95">
-            <Image 
-              src="https://picsum.photos/seed/featured/800/500" 
-              alt="Featured Lesson" 
-              fill 
-              className="object-cover group-hover:scale-110 transition-transform duration-500"
-              data-ai-hint="colorful space"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent flex flex-col justify-end p-6">
-              <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase py-1 px-3 rounded-full w-fit mb-2">
-                New Adventure
-              </span>
-              <h3 className="text-white text-2xl font-bold">The Secret of the Moon</h3>
-            </div>
+        
+        {isFeaturedLoading ? (
+          <div className="h-48 rounded-3xl bg-white/40 animate-pulse flex items-center justify-center">
+            <Loader2 className="w-6 h-6 text-primary animate-spin" />
           </div>
-        </Link>
+        ) : featured ? (
+          <Link href={`/academy/${featured.id}`}>
+            <div className="group relative rounded-3xl overflow-hidden aspect-[16/10] kid-card-shadow transition-transform active:scale-95">
+              <Image 
+                src={featured.imageUrl || "https://picsum.photos/seed/featured/800/500"} 
+                alt={featured.title} 
+                fill 
+                className="object-cover group-hover:scale-110 transition-transform duration-500"
+                data-ai-hint="colorful space"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent flex flex-col justify-end p-6">
+                <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase py-1 px-3 rounded-full w-fit mb-2">
+                  New Adventure
+                </span>
+                <h3 className="text-white text-2xl font-bold">{featured.title}</h3>
+              </div>
+            </div>
+          </Link>
+        ) : (
+          <div className="h-48 border-2 border-dashed rounded-3xl flex items-center justify-center opacity-40">
+            <p className="text-sm font-bold">Waiting for new lessons...</p>
+          </div>
+        )}
       </section>
 
       <section className="grid grid-cols-2 gap-4">

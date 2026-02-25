@@ -1,22 +1,31 @@
+
 "use client"
 
 import { BottomNav } from "@/components/BottomNav";
-import { mockLessons } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Cloud, Search, ArrowRight } from "lucide-react";
+import { Cloud, Search, ArrowRight, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
 
 export default function AcademyPage() {
   const [search, setSearch] = useState("");
+  const db = useFirestore();
 
-  const filteredLessons = mockLessons.filter(l => 
+  const lessonsQuery = useMemoFirebase(() => {
+    return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'));
+  }, [db]);
+
+  const { data: lessons, isLoading } = useCollection<any>(lessonsQuery);
+
+  const filteredLessons = lessons?.filter(l => 
     l.title.toLowerCase().includes(search.toLowerCase()) ||
     l.category.toLowerCase().includes(search.toLowerCase())
-  );
+  ) || [];
 
   return (
     <main className="min-h-screen pb-24 px-6 pt-12 max-w-md mx-auto">
@@ -38,13 +47,19 @@ export default function AcademyPage() {
       </header>
 
       <section className="space-y-6">
-        {filteredLessons.map((lesson) => (
+        {isLoading && (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          </div>
+        )}
+
+        {!isLoading && filteredLessons.map((lesson) => (
           <Link key={lesson.id} href={`/academy/${lesson.id}`}>
             <Card className="overflow-hidden border-none kid-card-shadow relative bg-white group active:scale-95 transition-transform mb-6">
               <div className="diary-tape bg-secondary/20" />
               <div className="relative h-48 w-full">
                 <Image 
-                  src={lesson.imageUrl} 
+                  src={lesson.imageUrl || "https://picsum.photos/seed/placeholder/600/400"} 
                   alt={lesson.title} 
                   fill 
                   className="object-cover group-hover:scale-105 transition-transform"
@@ -69,7 +84,7 @@ export default function AcademyPage() {
           </Link>
         ))}
 
-        {filteredLessons.length === 0 && (
+        {!isLoading && filteredLessons.length === 0 && (
           <div className="text-center py-20">
             <Cloud className="w-16 h-16 mx-auto text-primary/10 mb-4" />
             <p className="font-bold text-primary/40">No lessons found matching that!</p>

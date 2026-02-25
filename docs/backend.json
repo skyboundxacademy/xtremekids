@@ -28,6 +28,18 @@
       },
       "required": ["title", "content", "category"]
     },
+    "Task": {
+      "title": "Task",
+      "type": "object",
+      "description": "A daily or weekly mission for students to complete.",
+      "properties": {
+        "title": { "type": "string" },
+        "points": { "type": "number" },
+        "type": { "type": "string", "enum": ["daily", "weekly"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "points", "type"]
+    },
     "Submission": {
       "title": "Submission",
       "type": "object",
@@ -54,6 +66,10 @@
     "/lessons/{lessonId}": {
       "schema": { "$ref": "#/backend/entities/Lesson" },
       "description": "Public educational curriculum."
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/backend/entities/Task" },
+      "description": "Global mission list for students."
     },
     "/submissions/{submissionId}": {
       "schema": { "$ref": "#/backend/entities/Submission" },

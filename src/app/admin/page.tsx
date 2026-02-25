@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, CheckCircle, XCircle, Users, Upload, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, Plus, CheckCircle, XCircle, Users, Upload, LayoutDashboard, Star, BookOpen, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,13 @@ export default function AdminPage() {
     imageUrl: 'https://picsum.photos/seed/new/600/400'
   });
 
+  // Task State
+  const [newTask, setNewTask] = useState({
+    title: '',
+    points: 50,
+    type: 'daily'
+  });
+
   const handleAddLesson = () => {
     if (!newLesson.title || !newLesson.content) {
       toast({ title: "Error", description: "Please fill out all fields!", variant: "destructive" });
@@ -56,11 +63,26 @@ export default function AdminPage() {
       .finally(() => setLoading(false));
   };
 
+  const handleAddTask = () => {
+    if (!newTask.title) return;
+    setLoading(true);
+    addDoc(collection(db, 'tasks'), {
+      ...newTask,
+      createdAt: serverTimestamp()
+    })
+      .then(() => {
+        toast({ title: "Success!", description: "New mission added!" });
+        setNewTask({ title: '', points: 50, type: 'daily' });
+      })
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'tasks', operation: 'create', requestResourceData: newTask }));
+      })
+      .finally(() => setLoading(false));
+  };
+
   const handleApprove = (submission: any) => {
-    // 1. Approve submission
     updateDoc(doc(db, 'submissions', submission.id), { status: 'approved' })
       .then(() => {
-        // 2. Award stars to user profile in Firestore
         return updateDoc(doc(db, 'users', submission.userId), { 
           totalStars: increment(submission.points || 0) 
         });
@@ -156,7 +178,9 @@ export default function AdminPage() {
         <TabsContent value="lessons">
           <Card className="rounded-3xl border-none shadow-md overflow-hidden bg-white">
             <CardHeader className="bg-primary/5 border-b border-primary/10">
-              <CardTitle className="text-lg">Add New Lesson</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" /> Add New Lesson
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -214,27 +238,67 @@ export default function AdminPage() {
         </TabsContent>
 
         <TabsContent value="tasks">
-          <div className="text-center py-20 bg-white rounded-3xl shadow-sm border-2 border-dashed">
-            <p className="text-muted-foreground font-medium">Task builder interface coming soon!</p>
-          </div>
+          <Card className="rounded-3xl border-none shadow-md overflow-hidden bg-white">
+            <CardHeader className="bg-secondary/5 border-b border-secondary/10">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-secondary" /> Add New Mission
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold">Mission Title</label>
+                <Input 
+                  value={newTask.title}
+                  onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                  placeholder="e.g. Read 1 Lesson about Mars" 
+                  className="rounded-xl" 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold">Stars Worth</label>
+                  <Input 
+                    type="number"
+                    value={newTask.points}
+                    onChange={(e) => setNewTask({...newTask, points: parseInt(e.target.value)})}
+                    className="rounded-xl" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold">Type</label>
+                  <select 
+                    value={newTask.type}
+                    onChange={(e) => setNewTask({...newTask, type: e.target.value as 'daily' | 'weekly'})}
+                    className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm"
+                  >
+                    <option value="daily">Daily Mission</option>
+                    <option value="weekly">Weekly Challenge</option>
+                  </select>
+                </div>
+              </div>
+              <Button onClick={handleAddTask} disabled={loading} className="w-full rounded-xl bg-secondary h-12 text-lg font-bold">
+                <Plus className="w-5 h-5 mr-2" /> {loading ? "Creating..." : "Add Mission"}
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="data">
           <Card className="rounded-3xl border-none shadow-md overflow-hidden bg-white">
-            <CardHeader className="bg-secondary/5 border-b border-secondary/10">
+            <CardHeader className="bg-slate-50 border-b">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Upload className="text-secondary" /> Import Student Data
+                <Upload className="text-slate-400" /> Import Student Data
               </CardTitle>
             </CardHeader>
             <CardContent className="p-10 text-center">
-              <div className="w-20 h-20 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Users className="w-10 h-10 text-secondary" />
+              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Users className="w-10 h-10 text-slate-400" />
               </div>
               <h3 className="text-xl font-bold mb-2">CSV Migration Tool</h3>
               <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                Upload your existing student CSV to bring their star balance and profiles over to Skybound Academy.
+                Ready to import your students? This will migrate their star balances to Skybound Academy.
               </p>
-              <Button className="rounded-xl bg-secondary hover:bg-secondary/90 h-12 px-8 font-bold">
+              <Button variant="outline" className="rounded-xl h-12 px-8 font-bold border-2">
                 Choose CSV File
               </Button>
             </CardContent>
