@@ -3,22 +3,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() { return request.auth != null; }
-    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     
-    // Tochi, I've added your email here so you are ALWAYS the boss of the app.
+    // Tochi: You are the master admin. 
     function isAdmin() { 
       return isSignedIn() && (
         request.auth.token.email == 'goddikrayz@gmail.com' ||
-        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
     }
 
     match /users/{userId} {
       allow get: if isSignedIn();
-      // Allow students to see each other for the Leaderboard
-      allow list: if isSignedIn(); 
-      allow write: if isOwner(userId) || isAdmin();
+      allow list: if isSignedIn(); // Needed for leaderboard
+      allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
     }
 
     match /lessons/{lessonId} {
@@ -33,13 +30,9 @@ service cloud.firestore {
 
     match /submissions/{submissionId} {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list, get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow update: if isAdmin();
-    }
-
-    match /roles_admin/{adminId} {
-      allow get: if isSignedIn();
-      allow list, write: if false; 
+      allow delete: if isAdmin();
     }
   }
 }

@@ -9,14 +9,6 @@ import { collection, query, orderBy, limit, where, getDocs } from "firebase/fire
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
-interface LeaderboardUser {
-  id: string;
-  displayName: string;
-  totalStars: number;
-  photoURL?: string;
-  hasGreenTick?: boolean;
-}
-
 export default function LeaderboardPage() {
   const { user } = useUser();
   const db = useFirestore();
@@ -29,7 +21,7 @@ export default function LeaderboardPage() {
   const [activeStatus, setActiveStatus] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!users) return;
+    if (!users || !db) return;
 
     // Logic for Green Tick: Check if user completed 10 lessons and 6 tasks TODAY
     const checkActiveStatus = async () => {
@@ -39,21 +31,25 @@ export default function LeaderboardPage() {
       const statusMap: Record<string, boolean> = {};
 
       for (const u of users) {
-        const q = query(
-          collection(db, 'submissions'),
-          where('userId', '==', u.id),
-          where('status', '==', 'approved'),
-          where('timestamp', '>=', today)
-        );
-        
-        const snapshot = await getDocs(q);
-        const docs = snapshot.docs.map(d => d.data());
-        
-        const lessonCount = docs.filter(d => d.taskTitle.startsWith('Completed Lesson:')).length;
-        const taskCount = docs.length - lessonCount;
+        try {
+          const q = query(
+            collection(db, 'submissions'),
+            where('userId', '==', u.id),
+            where('status', '==', 'approved'),
+            where('timestamp', '>=', today)
+          );
+          
+          const snapshot = await getDocs(q);
+          const docs = snapshot.docs.map(d => d.data());
+          
+          const lessonCount = docs.filter(d => d.taskTitle.startsWith('Completed Lesson:')).length;
+          const taskCount = docs.length - lessonCount;
 
-        if (lessonCount >= 10 && taskCount >= 6) {
-          statusMap[u.id] = true;
+          if (lessonCount >= 10 && taskCount >= 6) {
+            statusMap[u.id] = true;
+          }
+        } catch (e) {
+          // Silently skip if permissions prevent checking specific user submissions
         }
       }
       setActiveStatus(statusMap);
@@ -106,13 +102,6 @@ export default function LeaderboardPage() {
             </CardContent>
           </Card>
         ))}
-
-        {users?.length === 0 && !isLoading && (
-          <div className="text-center py-20 opacity-30">
-            <Cloud className="w-16 h-16 mx-auto mb-4" />
-            <p className="font-bold">No explorers yet!</p>
-          </div>
-        )}
       </section>
 
       <BottomNav />

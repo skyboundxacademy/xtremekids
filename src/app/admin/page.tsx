@@ -2,17 +2,15 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Sparkles, CheckCircle, XCircle, LayoutDashboard, BookOpen, ClipboardList, Lightbulb, Trash2, Loader2, Wand2, Plus } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/tabs";
+import { ArrowLeft, Sparkles, CheckCircle, Loader2, Wand2, Plus, BookOpen, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, doc, addDoc, updateDoc, increment, query, orderBy, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, increment, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { generateBulkContent } from "@/ai/flows/content-generator";
@@ -30,8 +28,8 @@ export default function AdminPage() {
   }, [db, user]);
   const { data: profile } = useDoc<any>(userProfileRef);
 
-  const isOwner = user?.email === 'goddikrayz@gmail.com';
-  const isAdmin = isOwner || profile?.role === 'admin';
+  // Tochi: You are the boss.
+  const isAdmin = user?.email === 'goddikrayz@gmail.com' || profile?.role === 'admin';
 
   useEffect(() => {
     setMounted(true);
@@ -50,23 +48,24 @@ export default function AdminPage() {
 
   const handleAutoGenerate = async (type: 'lessons' | 'tasks') => {
     setLoading(true);
-    toast({ title: "Summoning AI...", description: `Professor Sky is writing ${type} for you!` });
+    toast({ title: "Summoning AI...", description: `Professor Sky is writing ${type} using your Gemini key!` });
     try {
       const count = type === 'lessons' ? 15 : 20;
       const result = await generateBulkContent({ type, count });
       const items = type === 'lessons' ? result.lessons : result.tasks;
       
       if (items) {
+        // Sequentially add to avoid hitting rate limits or causing rules issues during bulk
         for (const item of items) {
           addDoc(collection(db, type), {
             ...item,
             createdAt: serverTimestamp()
           }).catch(() => {});
         }
-        toast({ title: "AI Magic Done!", description: `${items.length} ${type} have been added to your folders!` });
+        toast({ title: "AI Magic Done!", description: `${items.length} ${type} have been added!` });
       }
     } catch (e) {
-      toast({ title: "AI Error", description: "Gemini is tired, try again.", variant: "destructive" });
+      toast({ title: "AI Error", description: "Check your Gemini key or try again.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -93,38 +92,36 @@ export default function AdminPage() {
       <header className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-4">
           <Link href="/"><Button variant="outline" size="icon" className="rounded-full"><ArrowLeft className="w-4 h-4" /></Button></Link>
-          <h1 className="text-2xl font-bold flex items-center gap-2">Admin Panel <Sparkles className="text-primary" /></h1>
+          <h1 className="text-2xl font-bold">Admin Panel <Sparkles className="text-primary" /></h1>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => handleAutoGenerate('lessons')} disabled={loading} variant="outline" className="gap-2 bg-primary/10 border-primary/20 text-primary rounded-xl">
+          <Button onClick={() => handleAutoGenerate('lessons')} disabled={loading} variant="outline" className="gap-2 rounded-xl">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} AI Lessons
           </Button>
-          <Button onClick={() => handleAutoGenerate('tasks')} disabled={loading} variant="outline" className="gap-2 bg-secondary/10 border-secondary/20 text-secondary rounded-xl">
+          <Button onClick={() => handleAutoGenerate('tasks')} disabled={loading} variant="outline" className="gap-2 rounded-xl">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} AI Tasks
           </Button>
         </div>
       </header>
 
       <Tabs defaultValue="marking">
-        <TabsList className="grid w-full grid-cols-3 mb-8 bg-white p-1 rounded-2xl kid-card-shadow">
-          <TabsTrigger value="marking" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Marking</TabsTrigger>
-          <TabsTrigger value="lessons" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Content</TabsTrigger>
-          <TabsTrigger value="import" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Import Students</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 mb-8 bg-white p-1 rounded-2xl kid-card-shadow">
+          <TabsTrigger value="marking">Marking</TabsTrigger>
+          <TabsTrigger value="content">Content</TabsTrigger>
         </TabsList>
 
         <TabsContent value="marking" className="space-y-4">
-          <h2 className="text-lg font-bold mb-4">Pending Submissions</h2>
           {submissions?.filter(s => s.status === 'pending').map((sub) => (
-            <Card key={sub.id} className="border-none kid-card-shadow overflow-hidden bg-white">
+            <Card key={sub.id} className="border-none kid-card-shadow bg-white">
               <CardContent className="p-6 flex justify-between items-center">
                 <div>
-                  <h3 className="font-bold text-lg text-primary">{sub.userName}</h3>
+                  <h3 className="font-bold text-lg">{sub.userName}</h3>
                   <p className="text-sm text-muted-foreground">{sub.taskTitle}</p>
                   <span className="text-xs font-bold text-secondary">{sub.points} Stars</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" className="bg-green-500 hover:bg-green-600 text-white font-bold px-6 rounded-xl" onClick={() => handleApprove(sub)}>Approve</Button>
-                  <Button size="sm" variant="outline" className="text-red-500 border-red-100 hover:bg-red-50 rounded-xl" onClick={() => updateDoc(doc(db, 'submissions', sub.id), { status: 'rejected' })}>Reject</Button>
+                  <Button size="sm" className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl" onClick={() => handleApprove(sub)}>Approve</Button>
+                  <Button size="sm" variant="outline" className="text-red-500 rounded-xl" onClick={() => updateDoc(doc(db, 'submissions', sub.id), { status: 'rejected' })}>Reject</Button>
                 </div>
               </CardContent>
             </Card>
@@ -132,32 +129,16 @@ export default function AdminPage() {
           {submissions?.filter(s => s.status === 'pending').length === 0 && (
             <div className="text-center py-20 opacity-30">
               <CheckCircle className="w-16 h-16 mx-auto mb-4" />
-              <p className="font-bold">No pending work! You're all caught up.</p>
+              <p className="font-bold">All work is marked!</p>
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="lessons">
-           <Card className="border-none kid-card-shadow bg-white p-8 rounded-[2rem]">
-             <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><BookOpen className="text-primary" /> Create Manual Content</h3>
-             <p className="text-sm text-muted-foreground mb-8">Use the AI buttons at the top for faster content creation!</p>
-             <div className="space-y-4 opacity-50 pointer-events-none">
-               <Input placeholder="Lesson Title" />
-               <Textarea placeholder="Lesson Content" />
-               <Button className="w-full bg-primary font-bold">Add to Academy</Button>
-             </div>
-           </Card>
-        </TabsContent>
-
-        <TabsContent value="import">
-          <Card className="border-none kid-card-shadow bg-white p-8 rounded-[2rem] text-center">
-            <ClipboardList className="w-16 h-16 mx-auto text-primary/20 mb-4" />
-            <h3 className="text-xl font-bold mb-2">Student Migration</h3>
-            <p className="text-sm text-muted-foreground mb-6">Import your students from CSV or Excel files. This feature is coming in the next update!</p>
-            <Button variant="outline" className="rounded-xl" onClick={() => toast({ title: "Coming Soon", description: "This will handle your batch student registration!" })}>
-              Upload CSV File
-            </Button>
-          </Card>
+        <TabsContent value="content">
+          <div className="text-center py-20 border-2 border-dashed rounded-3xl">
+            <BookOpen className="w-12 h-12 mx-auto mb-4 text-primary/20" />
+            <p className="font-bold text-muted-foreground">Use AI buttons above to generate lessons & tasks instantly!</p>
+          </div>
         </TabsContent>
       </Tabs>
     </main>

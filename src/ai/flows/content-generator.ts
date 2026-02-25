@@ -43,8 +43,15 @@ const contentGeneratorFlow = ai.defineFlow(
   },
   async (input) => {
     const promptText = input.type === 'lessons' 
-      ? `Generate ${input.count} educational lessons for children. Categories: Space, Science, Nature, History. Use simple language. Return as JSON.`
-      : `Generate ${input.count} fun daily/weekly tasks for children to earn stars. Return as JSON.`;
+      ? `Generate ${input.count} educational lessons for children aged 8-12. 
+         Categories: Space, Science, Nature, History, Technology. 
+         Use simple, exciting language. 
+         For each, provide an imageUrl from Unsplash (e.g., https://images.unsplash.com/photo-...) related to the topic.
+         Return as JSON.`
+      : `Generate ${input.count} fun daily tasks for children to earn stars. 
+         Examples: "Read 5 pages of a book", "Help with chores", "Draw a planet". 
+         Points should be between 10 and 50. 
+         Return as JSON.`;
 
     const { output } = await ai.generate({
       prompt: promptText,
