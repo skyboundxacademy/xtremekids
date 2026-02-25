@@ -1,0 +1,78 @@
+
+{
+  "entities": {
+    "Lesson": {
+      "title": "Lesson",
+      "description": "Educational content for children",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "category": { "type": "string", "enum": ["Space", "Nature", "Science", "Art"] }
+      },
+      "required": ["title", "content", "category"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Daily or weekly missions",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "points": { "type": "number" },
+        "type": { "type": "string", "enum": ["daily", "weekly"] }
+      },
+      "required": ["title", "points", "type"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "A student's completion of a task for marking",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "taskId": { "type": "string" },
+        "taskTitle": { "type": "string" },
+        "points": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "timestamp": { "type": "string", "format": "date" },
+        "feedback": { "type": "string" }
+      },
+      "required": ["userId", "taskId", "status"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Student information and progress",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "totalStars": { "type": "number" },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "role": { "type": "string", "enum": ["student", "admin"] }
+      },
+      "required": ["displayName", "totalStars"]
+    }
+  },
+  "auth": {
+    "providers": ["google.com", "password"]
+  },
+  "firestore": {
+    "/lessons/{lessonId}": {
+      "schema": "Lesson",
+      "description": "Collection of learning adventures"
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Collection of daily missions"
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Work submitted by students for review"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Student profiles and admin accounts"
+    }
+  }
+}
