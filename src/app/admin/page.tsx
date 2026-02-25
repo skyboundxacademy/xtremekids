@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, CheckCircle, XCircle, Users, Upload, LayoutDashboard, Star, BookOpen, ClipboardList } from "lucide-react";
+import { ArrowLeft, Plus, CheckCircle, XCircle, Users, Upload, LayoutDashboard, Star, BookOpen, ClipboardList, Lightbulb, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc, addDoc, updateDoc, increment, query, orderBy, serverTimestamp } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, increment, query, orderBy, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -21,13 +21,18 @@ export default function AdminPage() {
   const db = useFirestore();
   const [loading, setLoading] = useState(false);
 
-  // Real-time submissions query
+  // Real-time queries
   const submissionsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
   }, [db, user]);
-  
   const { data: submissions } = useCollection<any>(submissionsQuery);
+
+  const lessonsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'));
+  }, [db, user]);
+  const { data: lessons } = useCollection<any>(lessonsQuery);
 
   // Lesson State
   const [newLesson, setNewLesson] = useState({
@@ -35,7 +40,7 @@ export default function AdminPage() {
     category: 'Space',
     description: '',
     content: '',
-    imageUrl: 'https://picsum.photos/seed/new/600/400'
+    imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800'
   });
 
   // Task State
@@ -43,6 +48,14 @@ export default function AdminPage() {
     title: '',
     points: 50,
     type: 'daily'
+  });
+
+  // Quiz State
+  const [newQuiz, setNewQuiz] = useState({
+    title: '',
+    questions: [
+      { question: '', options: ['', '', ''], correctAnswer: 0 }
+    ]
   });
 
   const handleAddLesson = () => {
@@ -57,7 +70,7 @@ export default function AdminPage() {
     })
       .then(() => {
         toast({ title: "Success!", description: "New adventure added!" });
-        setNewLesson({ title: '', category: 'Space', description: '', content: '', imageUrl: 'https://picsum.photos/seed/new/600/400' });
+        setNewLesson({ title: '', category: 'Space', description: '', content: '', imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800' });
       })
       .catch(async () => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: newLesson }));
@@ -78,6 +91,26 @@ export default function AdminPage() {
       })
       .catch(async () => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'tasks', operation: 'create', requestResourceData: newTask }));
+      })
+      .finally(() => setLoading(false));
+  };
+
+  const handleAddQuiz = () => {
+    if (!newQuiz.title || newQuiz.questions[0].question === '') {
+      toast({ title: "Error", description: "Please add a title and at least one question!", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    addDoc(collection(db, 'quizzes'), {
+      ...newQuiz,
+      createdAt: serverTimestamp()
+    })
+      .then(() => {
+        toast({ title: "Success!", description: "Quiz created!" });
+        setNewQuiz({ title: '', questions: [{ question: '', options: ['', '', ''], correctAnswer: 0 }] });
+      })
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'quizzes', operation: 'create', requestResourceData: newQuiz }));
       })
       .finally(() => setLoading(false));
   };
@@ -113,6 +146,12 @@ export default function AdminPage() {
       });
   };
 
+  const handleDeleteLesson = (id: string) => {
+    deleteDoc(doc(db, 'lessons', id))
+      .then(() => toast({ title: "Deleted", description: "Lesson removed." }))
+      .catch(() => toast({ title: "Error", description: "Permission denied", variant: "destructive" }));
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 p-6 max-w-4xl mx-auto pb-24">
       <header className="flex justify-between items-center mb-8">
@@ -129,11 +168,12 @@ export default function AdminPage() {
       </header>
 
       <Tabs defaultValue="marking" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 rounded-2xl p-1 bg-white shadow-sm mb-8 h-12">
-          <TabsTrigger value="marking" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Marking</TabsTrigger>
-          <TabsTrigger value="lessons" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Lessons</TabsTrigger>
-          <TabsTrigger value="tasks" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Tasks</TabsTrigger>
-          <TabsTrigger value="data" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Import</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5 rounded-2xl p-1 bg-white shadow-sm mb-8 h-12">
+          <TabsTrigger value="marking" className="rounded-xl">Marking</TabsTrigger>
+          <TabsTrigger value="lessons" className="rounded-xl">Lessons</TabsTrigger>
+          <TabsTrigger value="tasks" className="rounded-xl">Tasks</TabsTrigger>
+          <TabsTrigger value="quizzes" className="rounded-xl">Quizzes</TabsTrigger>
+          <TabsTrigger value="data" className="rounded-xl">Import</TabsTrigger>
         </TabsList>
 
         <TabsContent value="marking">
@@ -178,132 +218,98 @@ export default function AdminPage() {
         </TabsContent>
 
         <TabsContent value="lessons">
-          <Card className="rounded-3xl border-none shadow-md overflow-hidden bg-white">
-            <CardHeader className="bg-primary/5 border-b border-primary/10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="rounded-3xl border-none shadow-md overflow-hidden bg-white h-fit">
+              <CardHeader className="bg-primary/5 border-b">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-primary" /> Add New Lesson
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <Input value={newLesson.title} onChange={(e) => setNewLesson({...newLesson, title: e.target.value})} placeholder="Title" />
+                <Input value={newLesson.category} onChange={(e) => setNewLesson({...newLesson, category: e.target.value})} placeholder="Category (e.g. Space)" />
+                <Input value={newLesson.description} onChange={(e) => setNewLesson({...newLesson, description: e.target.value})} placeholder="Short description" />
+                <Input value={newLesson.imageUrl} onChange={(e) => setNewLesson({...newLesson, imageUrl: e.target.value})} placeholder="Unsplash Image URL" />
+                <Textarea value={newLesson.content} onChange={(e) => setNewLesson({...newLesson, content: e.target.value})} placeholder="Lesson content..." className="min-h-[150px]" />
+                <Button onClick={handleAddLesson} disabled={loading} className="w-full rounded-xl bg-primary">Create Lesson</Button>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-4">
+              <h3 className="font-bold text-lg">Existing Lessons</h3>
+              {lessons?.map(lesson => (
+                <div key={lesson.id} className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm">
+                  <span className="font-medium">{lesson.title}</span>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteLesson(lesson.id)} className="text-destructive">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tasks">
+          <Card className="rounded-3xl border-none shadow-md overflow-hidden bg-white max-w-lg mx-auto">
+            <CardHeader className="bg-secondary/5 border-b">
               <CardTitle className="text-lg flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-primary" /> Add New Lesson
+                <ClipboardList className="w-5 h-5 text-secondary" /> Add Mission
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold">Title</label>
-                  <Input 
-                    value={newLesson.title}
-                    onChange={(e) => setNewLesson({...newLesson, title: e.target.value})}
-                    placeholder="Enter title..." 
-                    className="rounded-xl" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold">Category</label>
-                  <Input 
-                    value={newLesson.category}
-                    onChange={(e) => setNewLesson({...newLesson, category: e.target.value})}
-                    placeholder="Space, Nature, Art, Science" 
-                    className="rounded-xl" 
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold">Description</label>
-                <Input 
-                  value={newLesson.description}
-                  onChange={(e) => setNewLesson({...newLesson, description: e.target.value})}
-                  placeholder="Short catchy summary..." 
-                  className="rounded-xl" 
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold">Image URL</label>
-                <Input 
-                  value={newLesson.imageUrl}
-                  onChange={(e) => setNewLesson({...newLesson, imageUrl: e.target.value})}
-                  placeholder="https://..." 
-                  className="rounded-xl" 
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold">Content</label>
-                <Textarea 
-                  value={newLesson.content}
-                  onChange={(e) => setNewLesson({...newLesson, content: e.target.value})}
-                  placeholder="The actual lesson body text..." 
-                  className="rounded-xl min-h-[200px]" 
-                />
-              </div>
-              <Button onClick={handleAddLesson} disabled={loading} className="w-full rounded-xl bg-primary h-12 text-lg font-bold">
-                <Plus className="w-5 h-5 mr-2" /> {loading ? "Creating..." : "Launch Adventure"}
-              </Button>
+              <Input value={newTask.title} onChange={(e) => setNewTask({...newTask, title: e.target.value})} placeholder="Mission Title" />
+              <Input type="number" value={newTask.points} onChange={(e) => setNewTask({...newTask, points: parseInt(e.target.value)})} placeholder="Stars" />
+              <select value={newTask.type} onChange={(e) => setNewTask({...newTask, type: e.target.value as any})} className="w-full h-10 px-3 rounded-md border">
+                <option value="daily">Daily Mission</option>
+                <option value="weekly">Weekly Challenge</option>
+              </select>
+              <Button onClick={handleAddTask} disabled={loading} className="w-full rounded-xl bg-secondary">Add Mission</Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="tasks">
-          <Card className="rounded-3xl border-none shadow-md overflow-hidden bg-white">
-            <CardHeader className="bg-secondary/5 border-b border-secondary/10">
+        <TabsContent value="quizzes">
+          <Card className="rounded-3xl border-none shadow-md overflow-hidden bg-white max-w-lg mx-auto">
+            <CardHeader className="bg-yellow-500/5 border-b">
               <CardTitle className="text-lg flex items-center gap-2">
-                <ClipboardList className="w-5 h-5 text-secondary" /> Add New Mission
+                <Lightbulb className="w-5 h-5 text-yellow-600" /> Create Quiz
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold">Mission Title</label>
-                <Input 
-                  value={newTask.title}
-                  onChange={(e) => setNewTask({...newTask, title: e.target.value})}
-                  placeholder="e.g. Read 1 Lesson about Mars" 
-                  className="rounded-xl" 
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold">Stars Worth</label>
-                  <Input 
-                    type="number"
-                    value={newTask.points}
-                    onChange={(e) => setNewTask({...newTask, points: parseInt(e.target.value)})}
-                    className="rounded-xl" 
-                  />
+              <Input value={newQuiz.title} onChange={(e) => setNewQuiz({...newQuiz, title: e.target.value})} placeholder="Quiz Title" />
+              {newQuiz.questions.map((q, idx) => (
+                <div key={idx} className="p-4 border rounded-xl space-y-2">
+                  <Input value={q.question} onChange={(e) => {
+                    const qs = [...newQuiz.questions];
+                    qs[idx].question = e.target.value;
+                    setNewQuiz({...newQuiz, questions: qs});
+                  }} placeholder={`Question ${idx + 1}`} />
+                  {q.options.map((opt, oIdx) => (
+                    <Input key={oIdx} value={opt} onChange={(e) => {
+                      const qs = [...newQuiz.questions];
+                      qs[idx].options[oIdx] = e.target.value;
+                      setNewQuiz({...newQuiz, questions: qs});
+                    }} placeholder={`Option ${oIdx + 1}`} />
+                  ))}
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold">Type</label>
-                  <select 
-                    value={newTask.type}
-                    onChange={(e) => setNewTask({...newTask, type: e.target.value as 'daily' | 'weekly'})}
-                    className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm"
-                  >
-                    <option value="daily">Daily Mission</option>
-                    <option value="weekly">Weekly Challenge</option>
-                  </select>
-                </div>
-              </div>
-              <Button onClick={handleAddTask} disabled={loading} className="w-full rounded-xl bg-secondary h-12 text-lg font-bold">
-                <Plus className="w-5 h-5 mr-2" /> {loading ? "Creating..." : "Add Mission"}
-              </Button>
+              ))}
+              <Button onClick={handleAddQuiz} disabled={loading} className="w-full rounded-xl bg-yellow-500 hover:bg-yellow-600">Create Quiz</Button>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="data">
-          <Card className="rounded-3xl border-none shadow-md overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50 border-b">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Upload className="text-slate-400" /> Import Student Data
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-10 text-center">
-              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Users className="w-10 h-10 text-slate-400" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">CSV Migration Tool</h3>
-              <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                Ready to import your students? This will migrate their star balances to Skybound Academy.
-              </p>
-              <Button variant="outline" className="rounded-xl h-12 px-8 font-bold border-2">
-                Choose CSV File
-              </Button>
-            </CardContent>
+          <Card className="rounded-3xl border-none shadow-md overflow-hidden bg-white p-10 text-center">
+            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Upload className="w-10 h-10 text-slate-400" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">CSV Migration Tool</h3>
+            <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
+              Ready to import your students? Upload your CSV and we'll sync their balances to Firestore.
+            </p>
+            <Button variant="outline" className="rounded-xl h-12 px-8 font-bold border-2">
+              Select CSV File
+            </Button>
           </Card>
         </TabsContent>
       </Tabs>

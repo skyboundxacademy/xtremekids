@@ -53,6 +53,28 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "userName", "taskTitle", "status"]
+    },
+    "Quiz": {
+      "title": "Quiz",
+      "type": "object",
+      "description": "A multiple choice quiz for students.",
+      "properties": {
+        "title": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } },
+              "correctAnswer": { "type": "number" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "questions"]
     }
   },
   "auth": {
@@ -74,6 +96,10 @@
     "/submissions/{submissionId}": {
       "schema": { "$ref": "#/backend/entities/Submission" },
       "description": "Marking queue for student assignments."
+    },
+    "/quizzes/{quizId}": {
+      "schema": { "$ref": "#/backend/entities/Quiz" },
+      "description": "Educational quizzes."
     },
     "/roles_admin/{adminId}": {
       "schema": { 

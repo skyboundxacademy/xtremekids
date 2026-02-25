@@ -2,7 +2,6 @@
 "use client"
 
 import { BottomNav } from "@/components/BottomNav";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList, Loader2 } from "lucide-react";
 import Image from "next/image";
@@ -34,10 +33,13 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    if (!isUserLoading && !user) {
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !isUserLoading && !user) {
       router.push('/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, mounted]);
 
   if (!mounted || isUserLoading) {
     return (
@@ -66,7 +68,6 @@ export default function Home() {
                 alt="Avatar" 
                 fill 
                 className="object-cover"
-                data-ai-hint="cartoon character"
               />
             </div>
           </Link>
@@ -114,7 +115,6 @@ export default function Home() {
                 alt={featured.title} 
                 fill 
                 className="object-cover group-hover:scale-110 transition-transform duration-500"
-                data-ai-hint="colorful space"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent flex flex-col justify-end p-6">
                 <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase py-1 px-3 rounded-full w-fit mb-2">
