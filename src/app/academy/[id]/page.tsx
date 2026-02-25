@@ -57,7 +57,7 @@ export default function LessonDetailPage() {
       userId: user.uid,
       userName: user.displayName || "Explorer",
       taskTitle: `Completed Lesson: ${lesson.title}`,
-      points: 0, // Lessons earn badges, not points
+      points: 0, 
       rewardType: 'badge',
       status: "pending",
       timestamp: serverTimestamp()
@@ -66,15 +66,13 @@ export default function LessonDetailPage() {
     addDoc(collection(db, "submissions"), submissionData)
       .then(async () => {
         try {
-          const msg = await generateEncouragement({
+          await generateEncouragement({
             childName: user.displayName || "Explorer",
             contentType: "lesson",
             contentTitle: lesson.title
           });
-          toast({ title: "Lesson Submitted!", description: "Professor Sky is reviewing your work to award your badge!" });
-        } catch (e) {
-          toast({ title: "Great Job!" });
-        }
+        } catch (e) {}
+        toast({ title: "Lesson Finished!", description: "Professor Sky will award your badge soon!" });
         setIsCompleted(true);
         router.push('/academy');
       })
@@ -95,14 +93,14 @@ export default function LessonDetailPage() {
 
       <div className="relative h-72 w-full">
         <Image 
-          src={lesson.imageUrl || "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&q=80&w=800"} 
+          src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.title}/800/600`} 
           alt={lesson.title} 
           fill 
           className="object-cover" 
           unoptimized
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
-          <h1 className="text-3xl font-black text-white">{lesson.title}</h1>
+          <h1 className="text-3xl font-black text-white leading-tight">{lesson.title}</h1>
         </div>
       </div>
 
@@ -122,11 +120,11 @@ export default function LessonDetailPage() {
         <div className="mt-12">
           {isCompleted ? (
             <div className="w-full flex items-center justify-center gap-2 h-14 bg-green-500/10 text-green-600 rounded-2xl font-bold text-lg border-2 border-green-500/20">
-              <CheckCircle2 className="w-6 h-6" /> Lesson Completed!
+              <CheckCircle2 className="w-6 h-6" /> Lesson Finished!
             </div>
           ) : (
             <Button onClick={handleFinish} disabled={isSubmitting} className="w-full rounded-2xl h-14 bg-primary font-bold text-lg kid-card-shadow">
-              {isSubmitting ? "Sending to Professor..." : "Finish & Earn Badge"} <ArrowRight className="ml-2" />
+              {isSubmitting ? "Sending..." : "Finish & Earn Badge"} <ArrowRight className="ml-2" />
             </Button>
           )}
         </div>

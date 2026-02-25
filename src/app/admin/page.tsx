@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Sparkles, CheckCircle, Loader2, Wand2, BookOpen, ClipboardList, Trash2 } from "lucide-react";
+import { ArrowLeft, Sparkles, CheckCircle, Loader2, Wand2, BookOpen, ClipboardList, Trash2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -31,6 +31,7 @@ export default function AdminPage() {
   }, [db, user]);
   const { data: profile } = useDoc<any>(userProfileRef);
 
+  // Super Admin Check
   const isAdmin = user?.email === 'goddikrayz@gmail.com' || profile?.role === 'admin';
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export default function AdminPage() {
 
   const handleAutoGenerate = async (type: 'lessons' | 'tasks') => {
     setLoading(true);
-    toast({ title: "Summoning AI...", description: `Professor Sky is researching your idea: "${idea || 'everything'}"` });
+    toast({ title: "Summoning AI...", description: `Professor Sky is researching "${idea || 'everything'}"` });
     try {
       const result = await generateBulkContent({ type, count: type === 'lessons' ? 10 : 15, idea });
       const items = type === 'lessons' ? result.lessons : result.tasks;
@@ -67,11 +68,11 @@ export default function AdminPage() {
             createdAt: serverTimestamp()
           }).catch(() => {});
         }
-        toast({ title: "Education Magic Done!", description: `${items.length} ${type} have been added!` });
+        toast({ title: "Magic Done!", description: `${items.length} ${type} added!` });
         setIdea("");
       }
     } catch (e) {
-      toast({ title: "AI Error", description: "Check your Gemini key or usage limits.", variant: "destructive" });
+      toast({ title: "AI Error", description: "Gemini is busy, try again in a moment!", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -84,11 +85,13 @@ export default function AdminPage() {
     updateDoc(doc(db, 'submissions', submission.id), { status: 'approved' })
       .then(() => {
         if (isLesson && badgeName) {
+          // Lessons give Badges
           updateDoc(doc(db, 'users', submission.userId), { 
             badges: arrayUnion(badgeName)
           }).catch(() => {});
           toast({ title: "Badge Awarded!", description: `${submission.userName} earned the ${badgeName} badge!` });
         } else {
+          // Tasks give Stars
           updateDoc(doc(db, 'users', submission.userId), { 
             totalStars: increment(submission.points || 0) 
           }).catch(() => {});
@@ -98,6 +101,12 @@ export default function AdminPage() {
       .catch(async () => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `submissions/${submission.id}`, operation: 'update' }));
       });
+  };
+
+  const handleReject = (submission: any) => {
+    updateDoc(doc(db, 'submissions', submission.id), { status: 'rejected' })
+      .then(() => toast({ title: "Submission Rejected" }))
+      .catch(() => {});
   };
 
   if (!mounted || isUserLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
@@ -110,31 +119,30 @@ export default function AdminPage() {
           <Link href="/"><Button variant="outline" size="icon" className="rounded-full"><ArrowLeft className="w-4 h-4" /></Button></Link>
           <div>
             <h1 className="text-2xl font-bold">Academy Mission Control <Sparkles className="text-primary inline-block" /></h1>
-            <p className="text-sm text-muted-foreground">Tochi & Kelechi's Admin Panel</p>
+            <p className="text-sm text-muted-foreground">Tochi & Kelechi's Command Center</p>
           </div>
         </div>
 
         <Card className="border-none kid-card-shadow bg-white p-6">
           <div className="space-y-4">
-            <Label htmlFor="idea" className="font-bold text-primary">What should the AI build today? (Your Ideas)</Label>
+            <Label htmlFor="idea" className="font-bold text-primary">What should the AI build today?</Label>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input 
                 id="idea"
-                placeholder="e.g. History of Seoul, How to save money, Space travel..." 
+                placeholder="e.g. World History, Solar System, How to cook..." 
                 value={idea}
                 onChange={(e) => setIdea(e.target.value)}
                 className="rounded-xl h-12 flex-1"
               />
               <div className="flex gap-2">
                 <Button onClick={() => handleAutoGenerate('lessons')} disabled={loading} className="bg-primary gap-2 rounded-xl h-12 px-6">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} Create Lessons
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} AI Lessons
                 </Button>
                 <Button onClick={() => handleAutoGenerate('tasks')} disabled={loading} variant="outline" className="gap-2 rounded-xl h-12 px-6">
-                   Create Missions
+                   AI Missions
                 </Button>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground italic">Note: Lessons give Badges. Missions give Stars.</p>
           </div>
         </Card>
       </header>
@@ -142,7 +150,7 @@ export default function AdminPage() {
       <Tabs defaultValue="marking">
         <TabsList className="grid w-full grid-cols-2 mb-8 bg-white p-1 rounded-2xl kid-card-shadow h-12">
           <TabsTrigger value="marking" className="rounded-xl font-bold">Marking Queue ({submissions?.filter(s => s.status === 'pending').length || 0})</TabsTrigger>
-          <TabsTrigger value="content" className="rounded-xl font-bold">View Curriculum</TabsTrigger>
+          <TabsTrigger value="content" className="rounded-xl font-bold">Curriculum</TabsTrigger>
         </TabsList>
 
         <TabsContent value="marking" className="space-y-4">
@@ -168,7 +176,7 @@ export default function AdminPage() {
                     size="sm" 
                     variant="outline" 
                     className="flex-1 sm:flex-none text-red-500 hover:bg-red-50 rounded-xl" 
-                    onClick={() => updateDoc(doc(db, 'submissions', sub.id), { status: 'rejected' })}
+                    onClick={() => handleReject(sub)}
                   >
                     Reject
                   </Button>
@@ -180,25 +188,12 @@ export default function AdminPage() {
             <div className="text-center py-24 opacity-30">
               <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
               <p className="text-xl font-bold">Everything Marked!</p>
-              <p className="text-sm">You've helped all your students today.</p>
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="content">
-          <div className="grid grid-cols-1 gap-4">
-            <p className="text-sm font-bold text-muted-foreground px-2">Recently Added Content:</p>
-            {/* Simple list of content for deletion if needed */}
-            <div className="space-y-2">
-              <Card className="p-4 flex items-center justify-between bg-white border-none kid-card-shadow">
-                <div className="flex items-center gap-3">
-                  <BookOpen className="text-primary w-5 h-5" />
-                  <span className="font-bold">Total Curriculum Items</span>
-                </div>
-                <span className="font-black text-primary">Manage via AI Builder Above</span>
-              </Card>
-            </div>
-          </div>
+           <p className="text-center py-10 text-muted-foreground italic">Use the AI Builder above to generate more deep academic content.</p>
         </TabsContent>
       </Tabs>
     </main>

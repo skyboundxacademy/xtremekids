@@ -45,23 +45,23 @@ const contentGeneratorFlow = ai.defineFlow(
   async (input) => {
     const promptText = input.type === 'lessons' 
       ? `Generate ${input.count} extremely detailed academic educational lessons for children aged 8-12. 
-         Idea/Topic focus: ${input.idea || 'Science, History, and Nature'}.
-         The 'content' field must be at least 400 words long. Structure it like a real student notebook:
-         1. INTRODUCTION: Clear explanation of what the topic is.
-         2. TYPES/CATEGORIES: Different kinds of this topic with explanations.
-         3. ADVANTAGES: Why is this important or what are the benefits?
-         4. FUN FACTS: 3 surprising facts.
-         5. SUMMARY: A short closing summary.
+         Idea/Topic focus: ${input.idea || 'General Knowledge, Science, and History'}.
          
-         IMPORTANT: For the imageUrl, use a real, high-resolution Unsplash photo URL. 
-         DO NOT use "..." or placeholders. Use verified Unsplash links like:
-         https://images.unsplash.com/photo-1446776811953-b23d57bd21aa (Space)
-         https://images.unsplash.com/photo-1441974231531-c6227db76b6e (Nature)
-         https://images.unsplash.com/photo-1532094349884-543bc11b234d (Science)
-         Pick appropriate ones for the content.
+         The 'content' field must be at least 500 words long. Structure it with clear headers:
+         1. INTRODUCTION: What is this topic?
+         2. TYPES & CATEGORIES: Break it down.
+         3. ADVANTAGES & IMPORTANCE: Why does it matter to the world?
+         4. FUN FACTS: 3 surprising facts.
+         5. SUMMARY: Final wrap-up.
+         
+         CRITICAL IMAGE RULE: For the imageUrl, you MUST use: 
+         https://picsum.photos/seed/{{title}}/800/600 
+         Replace {{title}} with a URL-safe version of the lesson title. 
+         DO NOT use any other URLs.
+         
          Return as JSON.`
       : `Generate ${input.count} fun tasks/missions for children based on this idea: ${input.idea || 'helping at home and learning'}. 
-         Examples: "Read 10 pages of a history book", "Clean your study desk", "Identify 3 types of leaves in your garden". 
+         Examples: "Read 10 pages of a history book", "Identify 3 constellations", "Help clean the living room". 
          Points should be between 20 and 100. 
          Return as JSON.`;
 
@@ -69,6 +69,14 @@ const contentGeneratorFlow = ai.defineFlow(
       prompt: promptText,
       output: { schema: ContentGeneratorOutputSchema },
     });
+
+    // Post-process to ensure valid image URLs if the AI didn't follow the instruction perfectly
+    if (output?.lessons) {
+      output.lessons = output.lessons.map(l => ({
+        ...l,
+        imageUrl: `https://picsum.photos/seed/${encodeURIComponent(l.title)}/800/600`
+      }));
+    }
 
     return output!;
   }

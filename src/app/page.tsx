@@ -65,7 +65,7 @@ export default function Home() {
           <Link href="/profile">
             <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/20 relative">
               <Image 
-                src={user?.photoURL || "https://picsum.photos/seed/avatar-hero/100/100"} 
+                src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} 
                 alt="Avatar" 
                 fill 
                 className="object-cover"
@@ -112,7 +112,7 @@ export default function Home() {
           <Link href={`/academy/${featured.id}`}>
             <div className="group relative rounded-3xl overflow-hidden aspect-[16/10] kid-card-shadow transition-transform active:scale-95">
               <Image 
-                src={featured.imageUrl || "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&q=80&w=800"} 
+                src={featured.imageUrl || `https://picsum.photos/seed/${featured.title}/800/600`} 
                 alt={featured.title} 
                 fill 
                 className="object-cover group-hover:scale-110 transition-transform duration-500"
@@ -120,15 +120,15 @@ export default function Home() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent flex flex-col justify-end p-6">
                 <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase py-1 px-3 rounded-full w-fit mb-2">
-                  New Adventure
+                   {featured.category}
                 </span>
-                <h3 className="text-white text-2xl font-bold">{featured.title}</h3>
+                <h3 className="text-white text-2xl font-bold line-clamp-2">{featured.title}</h3>
               </div>
             </div>
           </Link>
         ) : (
           <div className="h-48 border-2 border-dashed rounded-3xl flex items-center justify-center opacity-40">
-            <p className="text-sm font-bold">Waiting for new lessons...</p>
+            <p className="text-sm font-bold">Waiting for lessons...</p>
           </div>
         )}
       </section>
