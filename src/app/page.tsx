@@ -149,6 +149,14 @@ export default function Home() {
             <span className="font-bold text-sm">Daily Tasks</span>
           </Link>
         </Button>
+        <Button asChild variant="outline" className="h-24 flex flex-col gap-1 rounded-3xl bg-white border-2 border-yellow-500/10 kid-card-shadow hover:bg-yellow-500/5 group col-span-2 mt-2">
+          <Link href="/leaderboard" className="flex items-center justify-center gap-3">
+            <div className="bg-yellow-500/10 p-2 rounded-xl group-hover:scale-110 transition-transform">
+              <Trophy className="text-yellow-500" />
+            </div>
+            <span className="font-black text-primary text-lg">Star Hall Leaderboard</span>
+          </Link>
+        </Button>
       </section>
 
       <BottomNav />

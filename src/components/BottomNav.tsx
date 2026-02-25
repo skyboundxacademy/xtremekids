@@ -3,13 +3,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, FlaskConical, ClipboardList, User, Trophy } from 'lucide-react';
+import { Home, BookOpen, FlaskConical, ClipboardList, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { label: 'Home', icon: Home, href: '/' },
   { label: 'Academy', icon: BookOpen, href: '/academy' },
-  { label: 'Leaderboard', icon: Trophy, href: '/leaderboard' },
   { label: 'Lab', icon: FlaskConical, href: '/lab' },
   { label: 'Tasks', icon: ClipboardList, href: '/tasks' },
   { label: 'Profile', icon: User, href: '/profile' },

@@ -1,27 +1,28 @@
+
 {
   "placeholderImages": [
     {
       "id": "hero-sky",
       "description": "Happy children in a sky background",
-      "imageUrl": "https://picsum.photos/seed/sky1/600/400",
+      "imageUrl": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800",
       "imageHint": "children clouds"
     },
     {
       "id": "lesson-space",
       "description": "Planets and stars for space lesson",
-      "imageUrl": "https://picsum.photos/seed/space/400/300",
+      "imageUrl": "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&q=80&w=800",
       "imageHint": "space planets"
     },
     {
-      "id": "lesson-animals",
-      "description": "Cute forest animals",
-      "imageUrl": "https://picsum.photos/seed/animals/400/300",
-      "imageHint": "cute animals"
+      "id": "lesson-nature",
+      "description": "Lush green forest",
+      "imageUrl": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=800",
+      "imageHint": "nature forest"
     },
     {
       "id": "lab-science",
       "description": "Colorful science lab experiments",
-      "imageUrl": "https://picsum.photos/seed/lab/400/300",
+      "imageUrl": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=800",
       "imageHint": "science experiments"
     },
     {

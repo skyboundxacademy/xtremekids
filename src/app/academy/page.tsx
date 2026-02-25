@@ -61,7 +61,7 @@ export default function AcademyPage() {
               <div className="diary-tape bg-secondary/20" />
               <div className="relative h-48 w-full">
                 <Image 
-                  src={lesson.imageUrl || "https://picsum.photos/seed/placeholder/600/400"} 
+                  src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.id}/600/400`} 
                   alt={lesson.title} 
                   fill 
                   className="object-cover group-hover:scale-105 transition-transform"

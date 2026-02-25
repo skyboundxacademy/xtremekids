@@ -28,8 +28,6 @@ export default function LessonDetailPage() {
 
   const { data: lesson, isLoading: isLessonLoading } = useDoc<any>(lessonRef);
   
-  const [takeaway, setTakeaway] = useState<string | null>(null);
-  const [isSummarizing, setIsSummarizing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // MONETAG AD PLACEHOLDER
@@ -82,7 +80,7 @@ export default function LessonDetailPage() {
       </button>
 
       <div className="relative h-72 w-full">
-        <Image src={lesson.imageUrl || "https://picsum.photos/seed/placeholder/600/400"} alt={lesson.title} fill className="object-cover" />
+        <Image src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.id}/800/600`} alt={lesson.title} fill className="object-cover" />
       </div>
 
       <div className="px-6 -mt-12 relative z-10">
