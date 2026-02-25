@@ -27,7 +27,11 @@ export default function AcademyPage() {
   useEffect(() => {
     if (!user) return;
     const fetchCompletion = async () => {
-      const q = query(collection(db, "submissions"), where("userId", "==", user.uid));
+      const q = query(
+        collection(db, "submissions"), 
+        where("userId", "==", user.uid),
+        where("status", "==", "approved")
+      );
       const snapshot = await getDocs(q);
       const titles = new Set(snapshot.docs.map(doc => doc.data().taskTitle));
       setCompletedTitles(titles);
@@ -35,7 +39,7 @@ export default function AcademyPage() {
     fetchCompletion();
   }, [user, db]);
 
-  // Sorting Logic: Uncompleted lessons first
+  // Sorting Logic: UNDONE lessons first
   const filteredAndSortedLessons = lessons
     ?.filter(l => 
       l.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -55,7 +59,7 @@ export default function AcademyPage() {
         <h1 className="text-3xl font-bold text-primary mb-2 flex items-center gap-2">
           Academy <Cloud className="text-primary/20 fill-primary/5" />
         </h1>
-        <p className="text-muted-foreground font-medium mb-6">What will you learn today?</p>
+        <p className="text-muted-foreground font-medium mb-6">Learn something amazing today!</p>
         
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -81,7 +85,7 @@ export default function AcademyPage() {
 
           return (
             <Link key={lesson.id} href={`/academy/${lesson.id}`}>
-              <Card className={`overflow-hidden border-none kid-card-shadow relative bg-white group active:scale-95 transition-transform mb-6 ${isDone ? 'opacity-70 grayscale-[0.5]' : ''}`}>
+              <Card className={`overflow-hidden border-none kid-card-shadow relative bg-white group active:scale-95 transition-transform mb-6 ${isDone ? 'opacity-70' : ''}`}>
                 <div className={`diary-tape ${isDone ? 'bg-green-500/20' : 'bg-secondary/20'}`} />
                 <div className="relative h-48 w-full">
                   <Image 
@@ -92,7 +96,7 @@ export default function AcademyPage() {
                     unoptimized
                   />
                   <Badge className={`absolute top-4 left-4 border-none ${isDone ? 'bg-green-600' : 'bg-primary/80 backdrop-blur-md'}`}>
-                    {isDone ? 'Completed' : lesson.category}
+                    {isDone ? 'Earned' : lesson.category}
                   </Badge>
                   {isDone && (
                     <div className="absolute top-4 right-4 bg-white rounded-full p-1 shadow-lg">
@@ -103,11 +107,11 @@ export default function AcademyPage() {
                 <CardContent className="p-5">
                   <h3 className={`text-xl font-bold mb-2 text-primary ${isDone ? 'line-through opacity-50' : ''}`}>{lesson.title}</h3>
                   <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-medium italic">
-                    {lesson.description || "A deep academic dive into this amazing topic!"}
+                    {lesson.description || "Deep academic exploration for young masters!"}
                   </p>
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">
-                      {isDone ? 'View Again' : 'Start Lesson'}
+                      {isDone ? 'View Again' : 'Unlock Badge'}
                     </span>
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
                       <ArrowRight className="w-4 h-4" />

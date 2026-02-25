@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview This file provides an AI flow for explaining concepts to children.
+ * @fileOverview This file provides an AI flow for the "Guru Lab" explaining any academic concept to children.
  *
  * - explainConcept - A function that handles the concept explanation process.
  * - ConceptExplainerInput - The input type for the explainConcept function.
@@ -13,12 +13,12 @@ import {z} from 'genkit';
 const ConceptExplainerInputSchema = z.object({
   concept: z
     .string()
-    .describe('The word or concept the child needs explained.'),
+    .describe('The question, word, or concept the child needs explained.'),
   context: z
     .string()
     .optional()
     .describe(
-      'Optional: The surrounding text or lesson context where the concept appeared.'
+      'Optional: The surrounding context or subject.'
     ),
 });
 export type ConceptExplainerInput = z.infer<typeof ConceptExplainerInputSchema>;
@@ -26,7 +26,7 @@ export type ConceptExplainerInput = z.infer<typeof ConceptExplainerInputSchema>;
 const ConceptExplainerOutputSchema = z.object({
   explanation: z
     .string()
-    .describe('A simple, child-friendly explanation of the concept.'),
+    .describe('A deep, simple, and child-friendly explanation of the concept.'),
 });
 export type ConceptExplainerOutput = z.infer<
   typeof ConceptExplainerOutputSchema
@@ -42,19 +42,22 @@ const prompt = ai.definePrompt({
   name: 'conceptExplainerPrompt',
   input: {schema: ConceptExplainerInputSchema},
   output: {schema: ConceptExplainerOutputSchema},
-  prompt: `You are a kind and friendly teacher named "Professor Sky" for young children at SkyboundKids Academy.
-Your goal is to explain difficult words or concepts in a way that is super easy for a child to understand.
-Use simple language, short sentences, and analogies that children can relate to.
-Make sure your explanation is engaging and encouraging.
+  prompt: `You are "Professor Sky", the world's smartest and kindest Academic Guru for children aged 8-12.
+Your mission is to explain ANY academic concept or answer ANY educational question in a way that is deep but easy to understand.
 
-The child wants to understand: "{{{concept}}}"
+Rules:
+- Use simple language but do NOT talk down to the child.
+- Use analogies (e.g., "Gravity is like an invisible magnet inside the Earth").
+- Structure your answer clearly.
+- Always be encouraging.
+
+The child is asking: "{{{concept}}}"
 
 {{#if context}}
-If there's additional context, please use it to make your explanation even better:
 Context: "{{{context}}}"
 {{/if}}
 
-Explain it as simply as possible:
+Guru Explanation:
 `,
   config: {
     safetySettings: [

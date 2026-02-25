@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview A Genkit flow to auto-generate deep, academic educational lessons and tasks for children.
- * Triple-checked for content depth and image reliability.
+ * Enforces deep academic structure (500+ words, Intro, Types, Advantages, Fun Facts).
  */
 
 import { ai } from '@/ai/genkit';
@@ -17,7 +17,7 @@ const LessonSchema = z.object({
   title: z.string(),
   category: z.string(),
   description: z.string().describe("A 2-sentence summary of the lesson."),
-  content: z.string().describe("Deep, long-form educational content (at least 500 words)."),
+  content: z.string().describe("Extremely deep, long-form academic lesson notes (at least 500 words)."),
   imageUrl: z.string(),
 });
 
@@ -47,14 +47,15 @@ const contentGeneratorFlow = ai.defineFlow(
       ? `Generate ${input.count} extremely detailed ACADEMIC educational lessons for children aged 8-12. 
          Idea/Topic focus: ${input.idea || 'General Knowledge, Science, and History'}.
          
-         CRITICAL CONTENT RULE: The 'content' field must be at least 500 words long. Structure it with clear headers:
-         1. INTRODUCTION: What is this topic and why is it interesting?
-         2. TYPES & CATEGORIES: How do we classify this topic?
-         3. ADVANTAGES & IMPORTANCE: How does this help the world or humans?
-         4. FUN FACTS: 3 surprising or amazing facts about this.
-         5. SUMMARY: A final wrap-up for the student.
+         CRITICAL ACADEMIC RULE: The 'content' field must be a full LESSON NOTE (at least 500 words). It MUST include:
+         1. INTRODUCTION: Define the topic and its origin.
+         2. TYPES & CLASSIFICATIONS: Detailed list of categories or variations.
+         3. ADVANTAGES & DISADVANTAGES: Why is this important? What are the risks?
+         4. THE FUTURE: How will this topic change in 20 years?
+         5. FUN FACTS: 5 surpising facts for kids.
+         6. SUMMARY: A wrap-up.
          
-         IMAGE RULE: For the imageUrl, use a placeholder that will be post-processed.
+         IMAGE RULE: Provide a placeholder string that represents the subject.
          
          Return as JSON.`
       : `Generate ${input.count} fun daily tasks/missions for children based on this idea: ${input.idea || 'helping at home and learning'}. 
@@ -67,7 +68,7 @@ const contentGeneratorFlow = ai.defineFlow(
       output: { schema: ContentGeneratorOutputSchema },
     });
 
-    // POST-PROCESS: Ensure high-quality, deterministic image URLs
+    // POST-PROCESS: Ensure high-quality images based on titles
     if (output?.lessons) {
       output.lessons = output.lessons.map(l => {
         const safeSeed = encodeURIComponent(l.title.replace(/\s+/g, '-').toLowerCase());

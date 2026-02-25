@@ -1,18 +1,17 @@
-
 'use client';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Sparkles, CheckCircle, Loader2, Wand2, BookOpen, ClipboardList, Trash2, XCircle } from "lucide-react";
+import { ArrowLeft, Sparkles, CheckCircle, Loader2, Wand2, BookOpen, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, doc, addDoc, updateDoc, arrayUnion, increment, query, orderBy, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, arrayUnion, increment, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { generateBulkContent } from "@/ai/flows/content-generator";
@@ -31,7 +30,7 @@ export default function AdminPage() {
   }, [db, user]);
   const { data: profile } = useDoc<any>(userProfileRef);
 
-  // Super Admin Check
+  // Master Admin: Tochi
   const isAdmin = user?.email === 'goddikrayz@gmail.com' || profile?.role === 'admin';
 
   useEffect(() => {
@@ -56,9 +55,11 @@ export default function AdminPage() {
 
   const handleAutoGenerate = async (type: 'lessons' | 'tasks') => {
     setLoading(true);
-    toast({ title: "Summoning AI...", description: `Professor Sky is researching "${idea || 'everything'}"` });
+    toast({ title: "Summoning Guru AI...", description: `Building ${type} for "${idea || 'everything'}"` });
     try {
-      const result = await generateBulkContent({ type, count: type === 'lessons' ? 10 : 15, idea });
+      // 15 Lessons or 20 Tasks as requested
+      const count = type === 'lessons' ? 15 : 20;
+      const result = await generateBulkContent({ type, count, idea });
       const items = type === 'lessons' ? result.lessons : result.tasks;
       
       if (items) {
@@ -68,11 +69,11 @@ export default function AdminPage() {
             createdAt: serverTimestamp()
           }).catch(() => {});
         }
-        toast({ title: "Magic Done!", description: `${items.length} ${type} added!` });
+        toast({ title: "Academy Updated!", description: `${items.length} academic ${type} generated!` });
         setIdea("");
       }
     } catch (e) {
-      toast({ title: "AI Error", description: "Gemini is busy, try again in a moment!", variant: "destructive" });
+      toast({ title: "AI Busy", description: "Gemini is busy, try again in a moment!", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -89,13 +90,13 @@ export default function AdminPage() {
           updateDoc(doc(db, 'users', submission.userId), { 
             badges: arrayUnion(badgeName)
           }).catch(() => {});
-          toast({ title: "Badge Awarded!", description: `${submission.userName} earned the ${badgeName} badge!` });
+          toast({ title: "Academic Badge Awarded!" });
         } else {
           // Tasks give Stars
           updateDoc(doc(db, 'users', submission.userId), { 
             totalStars: increment(submission.points || 0) 
           }).catch(() => {});
-          toast({ title: "Stars Awarded!", description: `${submission.userName} received ${submission.points} stars!` });
+          toast({ title: "Stars Awarded!" });
         }
       })
       .catch(async () => {
@@ -118,28 +119,28 @@ export default function AdminPage() {
         <div className="flex items-center gap-4">
           <Link href="/"><Button variant="outline" size="icon" className="rounded-full"><ArrowLeft className="w-4 h-4" /></Button></Link>
           <div>
-            <h1 className="text-2xl font-bold">Academy Mission Control <Sparkles className="text-primary inline-block" /></h1>
-            <p className="text-sm text-muted-foreground">Tochi & Kelechi's Command Center</p>
+            <h1 className="text-2xl font-bold">Academy Control <Sparkles className="text-primary inline-block" /></h1>
+            <p className="text-sm text-muted-foreground">Admin: Tochi Okereke</p>
           </div>
         </div>
 
         <Card className="border-none kid-card-shadow bg-white p-6">
           <div className="space-y-4">
-            <Label htmlFor="idea" className="font-bold text-primary">What should the AI build today?</Label>
+            <Label htmlFor="idea" className="font-bold text-primary">Guide the Guru AI</Label>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input 
                 id="idea"
-                placeholder="e.g. World History, Solar System, How to cook..." 
+                placeholder="Topic: Space, Robotics, Cooking, Math..." 
                 value={idea}
                 onChange={(e) => setIdea(e.target.value)}
                 className="rounded-xl h-12 flex-1"
               />
               <div className="flex gap-2">
                 <Button onClick={() => handleAutoGenerate('lessons')} disabled={loading} className="bg-primary gap-2 rounded-xl h-12 px-6">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} AI Lessons
+                  {loading ? <Loader2 className="animate-spin" /> : <BookOpen className="w-4 h-4" />} Create Lessons (15)
                 </Button>
                 <Button onClick={() => handleAutoGenerate('tasks')} disabled={loading} variant="outline" className="gap-2 rounded-xl h-12 px-6">
-                   AI Missions
+                  {loading ? <Loader2 className="animate-spin" /> : <ClipboardList className="w-4 h-4" />} Create Missions (20)
                 </Button>
               </div>
             </div>
@@ -155,45 +156,29 @@ export default function AdminPage() {
 
         <TabsContent value="marking" className="space-y-4">
           {submissions?.filter(s => s.status === 'pending').map((sub) => (
-            <Card key={sub.id} className="border-none kid-card-shadow bg-white overflow-hidden">
+            <Card key={sub.id} className="border-none kid-card-shadow bg-white">
               <CardContent className="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="space-y-1">
                   <h3 className="font-bold text-lg text-primary">{sub.userName}</h3>
                   <p className="text-sm font-medium">{sub.taskTitle}</p>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-secondary/10 text-secondary uppercase">
-                    Reward: {sub.taskTitle.startsWith('Completed Lesson') ? 'Academic Badge' : `${sub.points} Stars`}
-                  </span>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                  <Button 
-                    size="sm" 
-                    className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl" 
-                    onClick={() => handleApprove(sub)}
-                  >
-                    Approve
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="flex-1 sm:flex-none text-red-500 hover:bg-red-50 rounded-xl" 
-                    onClick={() => handleReject(sub)}
-                  >
-                    Reject
-                  </Button>
+                  <Button className="flex-1 bg-green-500 font-bold" onClick={() => handleApprove(sub)}>Approve</Button>
+                  <Button variant="outline" className="flex-1 text-red-500" onClick={() => handleReject(sub)}>Reject</Button>
                 </div>
               </CardContent>
             </Card>
           ))}
           {submissions?.filter(s => s.status === 'pending').length === 0 && (
             <div className="text-center py-24 opacity-30">
-              <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
-              <p className="text-xl font-bold">Everything Marked!</p>
+              <CheckCircle className="w-16 h-16 mx-auto mb-4" />
+              <p className="text-xl font-bold">All Marked!</p>
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="content">
-           <p className="text-center py-10 text-muted-foreground italic">Use the AI Builder above to generate more deep academic content.</p>
+        <TabsContent value="content" className="text-center py-10 opacity-50 italic">
+          Curriculum is managed via the Guru AI buttons above.
         </TabsContent>
       </Tabs>
     </main>
