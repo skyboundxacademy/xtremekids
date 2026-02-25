@@ -1,481 +1,62 @@
 {
   "entities": {
     "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a child user's profile information in the SkyboundKids Academy, allowing for personalized progress tracking.",
+      "description": "Child explorer profile tracking their progress and stars.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The display name of the child user."
-        },
-        "avatarUrl": {
-          "type": "string",
-          "description": "URL to the child's profile avatar or picture.",
-          "format": "uri"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the user profile was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the user profile was last updated.",
-          "format": "date-time"
-        }
+        "displayName": { "type": "string" },
+        "totalStars": { "type": "number" },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "role": { "type": "string", "enum": ["student", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "name",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["displayName", "totalStars", "role"]
     },
     "Lesson": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Lesson",
       "type": "object",
-      "description": "Represents a single educational lesson available in the SkyboundKids Academy, displayed as engaging cards.",
+      "description": "Educational lesson content.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Lesson entity."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the lesson."
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief description or overview of the lesson."
-        },
-        "contentHtml": {
-          "type": "string",
-          "description": "The main content of the lesson, formatted as HTML to support rich text and media."
-        },
-        "thumbnailUrl": {
-          "type": "string",
-          "description": "URL to an image thumbnail used for displaying the lesson card with cartoon-inspired design.",
-          "format": "uri"
-        },
-        "order": {
-          "type": "number",
-          "description": "The sequential order of the lesson within a curriculum or series."
-        },
-        "adminId": {
-          "type": "string",
-          "description": "Reference to the administrator's ID (from an external authentication system) who uploaded this lesson. (Relationship: AdminUser 1:N Lesson)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the lesson was created/uploaded.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the lesson was last updated.",
-          "format": "date-time"
-        }
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "title",
-        "description",
-        "contentHtml",
-        "thumbnailUrl",
-        "order",
-        "adminId",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["title", "content", "category"]
     },
-    "Quiz": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Quiz",
+    "Submission": {
+      "title": "Submission",
       "type": "object",
-      "description": "Represents an interactive quiz for children, often associated with lessons, featuring multiple-choice questions.",
+      "description": "A student's task submission waiting for admin marking.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Quiz entity."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the quiz."
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief description or introduction to the quiz."
-        },
-        "lessonId": {
-          "type": "string",
-          "description": "Reference to the Lesson this quiz is primarily associated with. (Relationship: Lesson 1:N Quiz)"
-        },
-        "questions": {
-          "type": "array",
-          "description": "A list of questions included in this quiz, each with options and a correct answer.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "adminId": {
-          "type": "string",
-          "description": "Reference to the administrator's ID (from an external authentication system) who uploaded this quiz. (Relationship: AdminUser 1:N Quiz)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the quiz was created/uploaded.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the quiz was last updated.",
-          "format": "date-time"
-        }
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "taskTitle": { "type": "string" },
+        "points": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "timestamp": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "title",
-        "description",
-        "questions",
-        "adminId",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "QuizQuestion": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "QuizQuestion",
-      "type": "object",
-      "description": "Represents a single question within a Quiz, including its text, options, and the correct answer.",
-      "properties": {
-        "questionText": {
-          "type": "string",
-          "description": "The text of the quiz question."
-        },
-        "options": {
-          "type": "array",
-          "description": "An array of possible answer options for the question.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "correctAnswerIndex": {
-          "type": "number",
-          "description": "The zero-based index of the correct answer within the 'options' array."
-        },
-        "explanation": {
-          "type": "string",
-          "description": "An optional explanation or feedback provided after the answer is revealed."
-        }
-      },
-      "required": [
-        "questionText",
-        "options",
-        "correctAnswerIndex"
-      ]
-    },
-    "Task": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Task",
-      "type": "object",
-      "description": "Represents a practical or creative task for children to complete, supporting active learning.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Task entity."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the task."
-        },
-        "description": {
-          "type": "string",
-          "description": "Instructions or a brief overview of the task."
-        },
-        "contentHtml": {
-          "type": "string",
-          "description": "The detailed content and instructions for the task, formatted as HTML."
-        },
-        "thumbnailUrl": {
-          "type": "string",
-          "description": "URL to an image thumbnail used for displaying the task card.",
-          "format": "uri"
-        },
-        "order": {
-          "type": "number",
-          "description": "The sequential order of the task within a series or group."
-        },
-        "adminId": {
-          "type": "string",
-          "description": "Reference to the administrator's ID (from an external authentication system) who uploaded this task. (Relationship: AdminUser 1:N Task)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the task was created/uploaded.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the task was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "title",
-        "description",
-        "contentHtml",
-        "thumbnailUrl",
-        "order",
-        "adminId",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "Lab": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Lab",
-      "type": "object",
-      "description": "Represents an exploratory or experimental activity for children, encouraging hands-on learning and discovery.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Lab entity."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the lab activity."
-        },
-        "description": {
-          "type": "string",
-          "description": "Instructions or a brief overview of the lab activity."
-        },
-        "contentHtml": {
-          "type": "string",
-          "description": "The detailed content and interactive elements for the lab, formatted as HTML."
-        },
-        "thumbnailUrl": {
-          "type": "string",
-          "description": "URL to an image thumbnail used for displaying the lab card.",
-          "format": "uri"
-        },
-        "order": {
-          "type": "number",
-          "description": "The sequential order of the lab within a series or group."
-        },
-        "adminId": {
-          "type": "string",
-          "description": "Reference to the administrator's ID (from an external authentication system) who uploaded this lab activity. (Relationship: AdminUser 1:N Lab)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the lab activity was created/uploaded.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the lab activity was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "title",
-        "description",
-        "contentHtml",
-        "thumbnailUrl",
-        "order",
-        "adminId",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "UserActivity": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserActivity",
-      "type": "object",
-      "description": "Tracks a child's interaction and progress with lessons, quizzes, tasks, and labs, including AI-powered encouragement messages.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserActivity entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile of the child performing the activity. (Relationship: UserProfile 1:N UserActivity)"
-        },
-        "activityType": {
-          "type": "string",
-          "description": "The type of educational activity recorded (e.g., lesson completion, quiz attempt).",
-          "items": {
-            "type": "string"
-          }
-        },
-        "lessonId": {
-          "type": "string",
-          "description": "Reference to the Lesson if the activity type is 'lesson_completed'. (Relationship: Lesson 1:N UserActivity)"
-        },
-        "quizId": {
-          "type": "string",
-          "description": "Reference to the Quiz if the activity type is 'quiz_attempted'. (Relationship: Quiz 1:N UserActivity)"
-        },
-        "taskId": {
-          "type": "string",
-          "description": "Reference to the Task if the activity type is 'task_completed'. (Relationship: Task 1:N UserActivity)"
-        },
-        "labId": {
-          "type": "string",
-          "description": "Reference to the Lab if the activity type is 'lab_completed'. (Relationship: Lab 1:N UserActivity)"
-        },
-        "score": {
-          "type": "number",
-          "description": "The score achieved in the activity, applicable for quizzes."
-        },
-        "isCompleted": {
-          "type": "boolean",
-          "description": "Indicates whether the activity was completed or successfully passed."
-        },
-        "aiMessage": {
-          "type": "string",
-          "description": "The personalized AI-generated encouragement message stored after generation."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "Timestamp when the user activity was recorded.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "activityType",
-        "isCompleted",
-        "timestamp"
-      ]
+      "required": ["userId", "userName", "taskTitle", "status"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "google"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/userProfiles/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores individual child user profiles. Access is restricted to the owner matching `request.auth.uid` via path-based ownership."
-        }
-      },
-      {
-        "path": "/lessons/{lessonId}",
-        "definition": {
-          "entityName": "Lesson",
-          "schema": {
-            "$ref": "#/backend/entities/Lesson"
-          },
-          "description": "Globally accessible educational lessons. Publicly readable by all authenticated users; write access is restricted to administrators based on the `adminId` field and admin role. Includes denormalized 'adminId' for authorization."
-        }
-      },
-      {
-        "path": "/quizzes/{quizId}",
-        "definition": {
-          "entityName": "Quiz",
-          "schema": {
-            "$ref": "#/backend/entities/Quiz"
-          },
-          "description": "Globally accessible interactive quizzes. Publicly readable by all authenticated users; write access is restricted to administrators based on the `adminId` field and admin role. Includes denormalized 'adminId' for authorization."
-        }
-      },
-      {
-        "path": "/quizzes/{quizId}/questions/{questionId}",
-        "definition": {
-          "entityName": "QuizQuestion",
-          "schema": {
-            "$ref": "#/backend/entities/QuizQuestion"
-          },
-          "description": "Individual questions for a quiz. Publicly readable by all authenticated users; write access is restricted to the quiz's `adminId`. Documents include denormalized `quizId` and `adminId` (copied from parent quiz) for authorization independence.",
-          "params": [
-            {
-              "name": "quizId",
-              "description": "The unique identifier of the parent Quiz."
-            },
-            {
-              "name": "questionId",
-              "description": "The unique identifier of the QuizQuestion."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/tasks/{taskId}",
-        "definition": {
-          "entityName": "Task",
-          "schema": {
-            "$ref": "#/backend/entities/Task"
-          },
-          "description": "Globally accessible practical tasks. Publicly readable by all authenticated users; write access is restricted to administrators based on the `adminId` field and admin role. Includes denormalized 'adminId' for authorization."
-        }
-      },
-      {
-        "path": "/labs/{labId}",
-        "definition": {
-          "entityName": "Lab",
-          "schema": {
-            "$ref": "#/backend/entities/Lab"
-          },
-          "description": "Globally accessible experimental lab activities. Publicly readable by all authenticated users; write access is restricted to administrators based on the `adminId` field and admin role. Includes denormalized 'adminId' for authorization."
-        }
-      },
-      {
-        "path": "/userProfiles/{userId}/activities/{activityId}",
-        "definition": {
-          "entityName": "UserActivity",
-          "schema": {
-            "$ref": "#/backend/entities/UserActivity"
-          },
-          "description": "Tracks a specific child's educational activities and progress. Access is strictly private to the `userId` (owner) embedded in the path and document fields. Includes denormalized 'userId' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the UserProfile owner."
-            },
-            {
-              "name": "activityId",
-              "description": "The unique identifier of the UserActivity record."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles_admin/{adminId}",
-        "definition": {
-          "entityName": "AdminRole",
-          "schema": {
-            "$ref": "#/backend/entities/AdminRole"
-          },
-          "description": "Designates users with administrator privileges. The existence of a document at `adminId` matching `request.auth.uid` grants admin status (DBAC pattern).",
-          "params": [
-            {
-              "name": "adminId",
-              "description": "The unique identifier of the user who holds an administrator role."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure for SkyboundKids Academy prioritizes security, scalability, and debuggability by adhering to core design principles. \n\n**Authorization Independence (CRITICAL):**\nThis design ensures authorization independence primarily through two mechanisms: path-based ownership for user-specific data and denormalized fields for shared or nested data management.\n\n1.  **Path-Based Ownership:** For `UserProfile` and `UserActivity` data, the `userId` is embedded directly in the collection path (`/userProfiles/{userId}`). This means that security rules can instantly verify `request.auth.uid == userId` without needing any `get()` calls to other documents. The `UserActivity` documents also contain a `userId` field, explicitly linking them to the owner, further simplifying rules to `request.auth.uid == resource.data.userId` or `request.auth.uid == userId` (from the path).\n\n2.  **Denormalized Admin Context for Nested Data:** For `QuizQuestion` documents, which are subcollections of `Quiz`, access control depends on the `adminId` of the parent `Quiz`. To achieve authorization independence as mandated, each `QuizQuestion` document will denormalize and store its parent's `adminId` (e.g., `quizAdminId`) and `quizId` directly within its own fields. This allows security rules to check `request.auth.uid == resource.data.quizAdminId` for write operations on questions without needing to perform a `get()` operation on the parent `Quiz` document. This is critical for supporting atomic operations and avoiding complex, error-prone rule dependencies.\n\n**QAPs (Rules are not Filters):**\n\nThe structure facilitates secure `list` operations (QAPs) by implementing **Structural Segregation (Homogeneous Security Posture)**. \n\n1.  **Public Collections:** `lessons`, `quizzes`, `tasks`, and `labs` are structured as top-level collections (e.g., `/lessons/{lessonId}`). All documents within these collections share the same security posture: they are globally readable by all authenticated users (children) and only writable by designated administrators. This homogeneity allows for simple, performant `list` queries without requiring rules to filter results, as the entire collection adheres to a single read permission. Any authenticated child can read all lessons, quizzes, etc.\n\n2.  **Private User Collections:** `userProfiles/{userId}` and `userProfiles/{userId}/activities/{activityId}` are strictly private. All documents in these collections are owned solely by the `userId` in the path. This segregation ensures that `list` operations on these collections automatically return only the data relevant to the authenticated user, as rules will enforce `request.auth.uid == userId` for all reads and writes.\n\n3.  **DBAC (Database Access Control for Admin Roles):** Admin roles are managed via a dedicated collection `/roles_admin/{adminId}`. The *existence* of a document at `/roles_admin/{request.auth.uid}` grants admin privileges. This is an explicit and easily debuggable way to manage global roles, allowing rules to check for `exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))` to grant elevated permissions to specific top-level collections (lessons, quizzes, tasks, labs) for write operations."
+    "/users/{userId}": {
+      "schema": { "$ref": "#/backend/entities/UserProfile" },
+      "description": "Private student profiles."
+    },
+    "/lessons/{lessonId}": {
+      "schema": { "$ref": "#/backend/entities/Lesson" },
+      "description": "Public educational lessons."
+    },
+    "/submissions/{submissionId}": {
+      "schema": { "$ref": "#/backend/entities/Submission" },
+      "description": "Task submissions for marking."
+    }
   }
 }
