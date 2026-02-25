@@ -4,31 +4,58 @@
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Settings, ShieldCheck, Star, Trophy, Pencil, MapPin } from "lucide-react";
+import { Settings, ShieldCheck, Star, Trophy, Pencil, MapPin, UserCheck, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
+  const [isTogglingRole, setIsTogglingRole] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => {
     return user ? doc(db, 'users', user.uid) : null;
   }, [db, user]);
   
-  const { data: profile } = useDoc<any>(userProfileRef);
+  const { data: profile, isLoading: isProfileLoading } = useDoc<any>(userProfileRef);
 
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/login');
   };
+
+  const toggleAdminRole = async () => {
+    if (!user || !profile) return;
+    setIsTogglingRole(true);
+    const newRole = profile.role === 'admin' ? 'student' : 'admin';
+    
+    updateDoc(doc(db, 'users', user.uid), { role: newRole })
+      .then(() => {
+        toast({ title: "Role Updated!", description: `You are now a ${newRole}!` });
+      })
+      .catch(() => {
+        toast({ title: "Error", description: "Could not update role.", variant: "destructive" });
+      })
+      .finally(() => setIsTogglingRole(false));
+  };
+
+  if (isUserLoading || isProfileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen pb-24 max-w-md mx-auto">
@@ -39,7 +66,7 @@ export default function ProfilePage() {
         
         <header className="flex justify-between items-center mb-10">
           <Link href="/admin">
-            <Settings className="w-6 h-6 opacity-80" />
+            <Settings className={cn("w-6 h-6 opacity-80", profile?.role !== 'admin' && "hidden")} />
           </Link>
           <h2 className="text-xl font-bold">My Profile</h2>
           <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full">
@@ -85,6 +112,28 @@ export default function ProfilePage() {
         </Card>
 
         <section className="mb-8">
+          <h3 className="text-lg font-bold mb-4 px-2">Explorer Controls</h3>
+          <div className="space-y-4">
+            <Button 
+              onClick={toggleAdminRole} 
+              disabled={isTogglingRole}
+              variant="outline" 
+              className="w-full rounded-2xl h-14 gap-2 border-primary/20 text-primary font-bold"
+            >
+              <UserCheck className="w-5 h-5" /> 
+              {isTogglingRole ? "Syncing..." : (profile?.role === 'admin' ? "Switch to Student" : "Become Admin (Dev Mode)")}
+            </Button>
+            
+            <Button 
+              onClick={handleLogout}
+              className="w-full rounded-2xl h-14 bg-white border-2 border-red-100 text-red-500 hover:bg-red-50 font-bold shadow-sm"
+            >
+              Log Out
+            </Button>
+          </div>
+        </section>
+
+        <section className="mb-8">
           <h3 className="text-lg font-bold mb-4 px-2">My Badges</h3>
           <div className="grid grid-cols-4 gap-4">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -97,13 +146,6 @@ export default function ProfilePage() {
             ))}
           </div>
         </section>
-
-        <Button 
-          onClick={handleLogout}
-          className="w-full rounded-2xl h-14 bg-white border-2 border-primary/10 text-primary hover:bg-primary/5 font-bold shadow-sm"
-        >
-          Log Out
-        </Button>
       </div>
 
       <BottomNav />

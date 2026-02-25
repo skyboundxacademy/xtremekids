@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -5,31 +6,53 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, CheckCircle, XCircle, LayoutDashboard, BookOpen, ClipboardList, Lightbulb, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Plus, CheckCircle, XCircle, LayoutDashboard, BookOpen, ClipboardList, Lightbulb, Trash2, Upload, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, increment, query, orderBy, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 export default function AdminPage() {
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const db = useFirestore();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const userProfileRef = useMemoFirebase(() => {
+    return user ? doc(db, 'users', user.uid) : null;
+  }, [db, user]);
+  const { data: profile } = useDoc<any>(userProfileRef);
+
+  useEffect(() => {
+    if (mounted && !isUserLoading && !user) {
+      router.push('/login');
+    }
+    if (mounted && !isUserLoading && user && profile && profile.role !== 'admin') {
+      toast({ title: "Access Denied", description: "You are not an admin!", variant: "destructive" });
+      router.push('/');
+    }
+  }, [user, isUserLoading, router, mounted, profile]);
 
   const submissionsQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || profile?.role !== 'admin') return null;
     return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
-  }, [db, user]);
+  }, [db, user, profile]);
   const { data: submissions } = useCollection<any>(submissionsQuery);
 
   const lessonsQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || profile?.role !== 'admin') return null;
     return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'));
-  }, [db, user]);
+  }, [db, user, profile]);
   const { data: lessons } = useCollection<any>(lessonsQuery);
 
   const [newLesson, setNewLesson] = useState({
@@ -52,6 +75,16 @@ export default function AdminPage() {
       { question: '', options: ['', '', ''], correctAnswer: 0 }
     ]
   });
+
+  if (!mounted || isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user || profile?.role !== 'admin') return null;
 
   const handleAddLesson = () => {
     if (!newLesson.title || !newLesson.content) {
@@ -122,16 +155,11 @@ export default function AdminPage() {
       .then(() => {
         updateDoc(doc(db, 'users', submission.userId), { 
           totalStars: increment(submission.points || 0) 
-        }).catch(() => {
-          // Inner failure handling
-        });
+        }).catch(() => {});
         toast({ title: "Approved!", description: `Explorer ${submission.userName} received ${submission.points} stars!` });
       })
       .catch(async () => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
-          path: `submissions/${submission.id}`, 
-          operation: 'update' 
-        }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `submissions/${submission.id}`, operation: 'update' }));
       });
   };
 
@@ -141,10 +169,7 @@ export default function AdminPage() {
         toast({ title: "Mission Rejected", description: "Submission marked as rejected." });
       })
       .catch(async () => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
-          path: `submissions/${submission.id}`, 
-          operation: 'update' 
-        }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `submissions/${submission.id}`, operation: 'update' }));
       });
   };
 
@@ -152,10 +177,7 @@ export default function AdminPage() {
     deleteDoc(doc(db, 'lessons', id))
       .then(() => toast({ title: "Deleted", description: "Lesson removed." }))
       .catch(async () => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
-          path: `lessons/${id}`, 
-          operation: 'delete' 
-        }));
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `lessons/${id}`, operation: 'delete' }));
       });
   };
 
@@ -197,19 +219,10 @@ export default function AdminPage() {
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      className="rounded-xl bg-green-500 hover:bg-green-600 gap-2"
-                      onClick={() => handleApprove(sub)}
-                    >
+                    <Button size="sm" className="rounded-xl bg-green-500 hover:bg-green-600 gap-2" onClick={() => handleApprove(sub)}>
                       <CheckCircle className="w-4 h-4" /> Approve
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => handleReject(sub)}
-                      className="rounded-xl text-destructive border-destructive/20 hover:bg-destructive/5"
-                    >
+                    <Button size="sm" variant="outline" onClick={() => handleReject(sub)} className="rounded-xl text-destructive border-destructive/20 hover:bg-destructive/5">
                       <XCircle className="w-4 h-4" /> Reject
                     </Button>
                   </div>
@@ -287,16 +300,11 @@ export default function AdminPage() {
               <div className="space-y-4">
                 {newQuiz.questions.map((q, idx) => (
                   <div key={idx} className="p-4 border rounded-xl space-y-2 bg-slate-50 relative">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="absolute top-2 right-2 text-muted-foreground"
-                      onClick={() => {
-                        const qs = [...newQuiz.questions];
-                        qs.splice(idx, 1);
-                        setNewQuiz({...newQuiz, questions: qs});
-                      }}
-                    >
+                    <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-muted-foreground" onClick={() => {
+                      const qs = [...newQuiz.questions];
+                      qs.splice(idx, 1);
+                      setNewQuiz({...newQuiz, questions: qs});
+                    }}>
                       <Trash2 className="w-3 h-3" />
                     </Button>
                     <Input value={q.question} onChange={(e) => {
@@ -336,14 +344,8 @@ export default function AdminPage() {
               <Upload className="w-10 h-10 text-slate-400" />
             </div>
             <h3 className="text-xl font-bold mb-2">CSV Migration Tool</h3>
-            <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-              Ready to import your students? Upload your CSV and we'll sync their balances to Firestore.
-            </p>
-            <Button 
-              variant="outline" 
-              className="rounded-xl h-12 px-8 font-bold border-2"
-              onClick={() => toast({ title: "Coming Soon!", description: "CSV Import functionality is being prepared." })}
-            >
+            <p className="text-muted-foreground mb-8 max-w-sm mx-auto">Ready to import your students? Upload your CSV and we'll sync their balances to Firestore.</p>
+            <Button variant="outline" className="rounded-xl h-12 px-8 font-bold border-2" onClick={() => toast({ title: "Coming Soon!", description: "CSV Import functionality is being prepared." })}>
               Select CSV File
             </Button>
           </Card>
