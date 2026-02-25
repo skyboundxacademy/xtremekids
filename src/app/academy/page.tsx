@@ -52,7 +52,7 @@ export default function AcademyPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input 
-            className="pl-10 rounded-2xl border-primary/10 bg-white" 
+            className="pl-10 rounded-2xl border-primary/10 bg-white h-12" 
             placeholder="Search for lessons..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -75,10 +75,11 @@ export default function AcademyPage() {
                 <div className={`diary-tape ${isDone ? 'bg-green-500/20' : 'bg-secondary/20'}`} />
                 <div className="relative h-48 w-full">
                   <Image 
-                    src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.id}/600/400`} 
+                    src={lesson.imageUrl || "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=800"} 
                     alt={lesson.title} 
                     fill 
                     className="object-cover group-hover:scale-105 transition-transform"
+                    unoptimized
                   />
                   <Badge className={`absolute top-4 left-4 border-none ${isDone ? 'bg-green-600' : 'bg-primary/80 backdrop-blur-md'}`}>
                     {isDone ? 'Completed' : lesson.category}
@@ -91,12 +92,12 @@ export default function AcademyPage() {
                 </div>
                 <CardContent className="p-5">
                   <h3 className={`text-xl font-bold mb-2 text-primary ${isDone ? 'line-through opacity-50' : ''}`}>{lesson.title}</h3>
-                  <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-medium">
-                    {lesson.description}
+                  <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-medium italic">
+                    {lesson.description || "A deep dive into this amazing topic!"}
                   </p>
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">
-                      {isDone ? 'View Again' : 'Start Adventure'}
+                      {isDone ? 'View Again' : 'Start Lesson'}
                     </span>
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
                       <ArrowRight className="w-4 h-4" />

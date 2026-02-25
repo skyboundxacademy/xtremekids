@@ -3,7 +3,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Sparkles, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, Sparkles, ArrowRight, Loader2, CheckCircle2, Award } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { generateEncouragement } from "@/ai/flows/ai-encouragement";
@@ -30,7 +30,6 @@ export default function LessonDetailPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [checkingCompletion, setCheckingCompletion] = useState(true);
 
-  // Check if user already finished this lesson
   useEffect(() => {
     if (!user || !lesson) return;
     
@@ -58,7 +57,8 @@ export default function LessonDetailPage() {
       userId: user.uid,
       userName: user.displayName || "Explorer",
       taskTitle: `Completed Lesson: ${lesson.title}`,
-      points: 25,
+      points: 0, // Lessons earn badges, not points
+      rewardType: 'badge',
       status: "pending",
       timestamp: serverTimestamp()
     };
@@ -71,9 +71,9 @@ export default function LessonDetailPage() {
             contentType: "lesson",
             contentTitle: lesson.title
           });
-          toast({ title: "Mission Submitted!", description: msg.message });
+          toast({ title: "Lesson Submitted!", description: "Professor Sky is reviewing your work to award your badge!" });
         } catch (e) {
-          toast({ title: "Well Done!" });
+          toast({ title: "Great Job!" });
         }
         setIsCompleted(true);
         router.push('/academy');
@@ -95,25 +95,38 @@ export default function LessonDetailPage() {
 
       <div className="relative h-72 w-full">
         <Image 
-          src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.id}/800/600`} 
+          src={lesson.imageUrl || "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&q=80&w=800"} 
           alt={lesson.title} 
           fill 
           className="object-cover" 
+          unoptimized
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
+          <h1 className="text-3xl font-black text-white">{lesson.title}</h1>
+        </div>
       </div>
 
-      <div className="px-6 -mt-12 relative z-10">
-        <h1 className="text-3xl font-bold text-primary mb-6 bg-white/80 backdrop-blur-sm p-2 rounded-xl inline-block">{lesson.title}</h1>
-        <div className="prose mb-10 text-muted-foreground font-medium leading-relaxed">{lesson.content}</div>
+      <div className="px-6 py-8">
+        <div className="flex items-center gap-2 mb-8 bg-secondary/10 p-4 rounded-2xl border-2 border-dashed border-secondary/20">
+          <Award className="text-secondary w-6 h-6" />
+          <div>
+            <p className="text-[10px] font-bold uppercase text-secondary">Reward</p>
+            <p className="font-bold text-sm">Earn the "{lesson.title}" Badge</p>
+          </div>
+        </div>
 
-        <div className="flex gap-4">
+        <div className="prose prose-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap">
+          {lesson.content}
+        </div>
+
+        <div className="mt-12">
           {isCompleted ? (
             <div className="w-full flex items-center justify-center gap-2 h-14 bg-green-500/10 text-green-600 rounded-2xl font-bold text-lg border-2 border-green-500/20">
-              <CheckCircle2 className="w-6 h-6" /> Mission Already Done!
+              <CheckCircle2 className="w-6 h-6" /> Lesson Completed!
             </div>
           ) : (
-            <Button onClick={handleFinish} disabled={isSubmitting} className="flex-1 rounded-2xl h-14 bg-secondary font-bold text-lg">
-              {isSubmitting ? "Sending..." : "Finish & Earn Stars"} <ArrowRight className="ml-2" />
+            <Button onClick={handleFinish} disabled={isSubmitting} className="w-full rounded-2xl h-14 bg-primary font-bold text-lg kid-card-shadow">
+              {isSubmitting ? "Sending to Professor..." : "Finish & Earn Badge"} <ArrowRight className="ml-2" />
             </Button>
           )}
         </div>
