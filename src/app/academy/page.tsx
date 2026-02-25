@@ -4,18 +4,19 @@
 import { BottomNav } from "@/components/BottomNav";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Cloud, Search, ArrowRight, Loader2 } from "lucide-react";
+import { Cloud, Search, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, where, getDocs } from "firebase/firestore";
 
 export default function AcademyPage() {
   const [search, setSearch] = useState("");
   const { user } = useUser();
   const db = useFirestore();
+  const [completedTitles, setCompletedTitles] = useState<Set<string>>(new Set());
 
   const lessonsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -23,6 +24,17 @@ export default function AcademyPage() {
   }, [db, user]);
 
   const { data: lessons, isLoading } = useCollection<any>(lessonsQuery);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchCompletion = async () => {
+      const q = query(collection(db, "submissions"), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      const titles = new Set(snapshot.docs.map(doc => doc.data().taskTitle));
+      setCompletedTitles(titles);
+    };
+    fetchCompletion();
+  }, [user, db]);
 
   const filteredLessons = lessons?.filter(l => 
     l.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -55,36 +67,46 @@ export default function AcademyPage() {
           </div>
         )}
 
-        {!isLoading && user && filteredLessons.map((lesson) => (
-          <Link key={lesson.id} href={`/academy/${lesson.id}`}>
-            <Card className="overflow-hidden border-none kid-card-shadow relative bg-white group active:scale-95 transition-transform mb-6">
-              <div className="diary-tape bg-secondary/20" />
-              <div className="relative h-48 w-full">
-                <Image 
-                  src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.id}/600/400`} 
-                  alt={lesson.title} 
-                  fill 
-                  className="object-cover group-hover:scale-105 transition-transform"
-                />
-                <Badge className="absolute top-4 left-4 bg-primary/80 backdrop-blur-md border-none">
-                  {lesson.category}
-                </Badge>
-              </div>
-              <CardContent className="p-5">
-                <h3 className="text-xl font-bold mb-2 text-primary">{lesson.title}</h3>
-                <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-medium">
-                  {lesson.description}
-                </p>
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">Start Adventure</span>
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
+        {!isLoading && user && filteredLessons.map((lesson) => {
+          const isDone = completedTitles.has(`Completed Lesson: ${lesson.title}`);
+          return (
+            <Link key={lesson.id} href={`/academy/${lesson.id}`}>
+              <Card className={`overflow-hidden border-none kid-card-shadow relative bg-white group active:scale-95 transition-transform mb-6 ${isDone ? 'opacity-70' : ''}`}>
+                <div className={`diary-tape ${isDone ? 'bg-green-500/20' : 'bg-secondary/20'}`} />
+                <div className="relative h-48 w-full">
+                  <Image 
+                    src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.id}/600/400`} 
+                    alt={lesson.title} 
+                    fill 
+                    className="object-cover group-hover:scale-105 transition-transform"
+                  />
+                  <Badge className={`absolute top-4 left-4 border-none ${isDone ? 'bg-green-600' : 'bg-primary/80 backdrop-blur-md'}`}>
+                    {isDone ? 'Completed' : lesson.category}
+                  </Badge>
+                  {isDone && (
+                    <div className="absolute top-4 right-4 bg-white rounded-full p-1 shadow-lg">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+                <CardContent className="p-5">
+                  <h3 className={`text-xl font-bold mb-2 text-primary ${isDone ? 'line-through opacity-50' : ''}`}>{lesson.title}</h3>
+                  <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-medium">
+                    {lesson.description}
+                  </p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">
+                      {isDone ? 'View Again' : 'Start Adventure'}
+                    </span>
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
 
         {!isLoading && user && filteredLessons.length === 0 && (
           <div className="text-center py-20">

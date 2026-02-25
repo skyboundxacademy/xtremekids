@@ -3,7 +3,7 @@
 
 import { BottomNav } from "@/components/BottomNav";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, Circle, Cloud, Sparkles, Star, Send, Loader2 } from "lucide-react";
+import { CheckCircle2, Circle, Cloud, Sparkles, Star, Send, Loader2, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
@@ -19,7 +19,7 @@ export default function TasksPage() {
   const db = useFirestore();
   const { toast } = useToast();
   const [submittingId, setSubmittingId] = useState<string | null>(null);
-  const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(new Set());
+  const [statusMap, setStatusMap] = useState<Record<string, 'pending' | 'approved' | null>>({});
 
   const tasksQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -28,22 +28,30 @@ export default function TasksPage() {
 
   const { data: tasks, isLoading } = useCollection<any>(tasksQuery);
 
-  // Fetch user's approved submissions to mark tasks as "Done"
+  // Fetch user's submissions to check task status
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, "submissions"),
-      where("userId", "==", user.uid),
-      where("status", "==", "approved")
-    );
-    getDocs(q).then((snapshot) => {
-      const completedTitles = new Set(snapshot.docs.map(doc => doc.data().taskTitle));
-      setCompletedTaskIds(completedTitles);
-    });
+    const fetchStatus = async () => {
+      const q = query(
+        collection(db, "submissions"),
+        where("userId", "==", user.uid)
+      );
+      const snapshot = await getDocs(q);
+      const newMap: Record<string, 'pending' | 'approved' | null> = {};
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        // If it's already approved, keep it approved. If pending, set pending.
+        if (data.status === 'approved' || !newMap[data.taskTitle]) {
+           newMap[data.taskTitle] = data.status;
+        }
+      });
+      setStatusMap(newMap);
+    };
+    fetchStatus();
   }, [user, db, submittingId]);
 
   const handleTaskSubmit = (task: any) => {
-    if (!user) return;
+    if (!user || statusMap[task.title]) return;
     setSubmittingId(task.id);
 
     const submissionData = {
@@ -61,6 +69,7 @@ export default function TasksPage() {
           title: "Mission Sent!", 
           description: `Professor Sky will mark "${task.title}" soon. Keep it up!` 
         });
+        setStatusMap(prev => ({ ...prev, [task.title]: 'pending' }));
       })
       .catch(async () => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ 
@@ -73,8 +82,8 @@ export default function TasksPage() {
   };
 
   const tasksList = tasks || [];
-  const completedCount = tasksList.filter(t => completedTaskIds.has(t.title)).length;
-  const progress = tasksList.length > 0 ? (completedCount / tasksList.length) * 100 : 0;
+  const approvedCount = tasksList.filter(t => statusMap[t.title] === 'approved').length;
+  const progress = tasksList.length > 0 ? (approvedCount / tasksList.length) * 100 : 0;
 
   return (
     <main className="min-h-screen pb-24 px-6 pt-12 max-w-md mx-auto">
@@ -87,7 +96,7 @@ export default function TasksPage() {
         <div className="bg-white p-6 rounded-3xl kid-card-shadow border-none relative overflow-hidden">
           <div className="diary-tape bg-primary/20" />
           <div className="flex justify-between items-end mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Daily Progress</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Approved Progress</span>
             <span className="text-xl font-black text-primary">{Math.round(progress)}%</span>
           </div>
           <Progress value={progress} className="h-4 rounded-full bg-primary/5 [&>div]:bg-primary" />
@@ -106,22 +115,25 @@ export default function TasksPage() {
         )}
 
         {!isLoading && user && tasksList.map((task) => {
-          const isCompleted = completedTaskIds.has(task.title);
+          const status = statusMap[task.title];
+          const isDone = status === 'approved';
+          const isPending = status === 'pending';
+
           return (
             <Card key={task.id} className={cn(
               "border-none kid-card-shadow transition-all group",
-              isCompleted ? "bg-primary/5 opacity-80" : "bg-white"
+              isDone ? "bg-green-500/5 opacity-80" : isPending ? "bg-yellow-500/5" : "bg-white"
             )}>
               <CardContent className="p-5 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className={cn(
                     "w-10 h-10 rounded-2xl flex items-center justify-center transition-colors",
-                    isCompleted ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground group-hover:bg-primary/10"
+                    isDone ? "bg-green-100 text-green-600" : isPending ? "bg-yellow-100 text-yellow-600" : "bg-muted text-muted-foreground group-hover:bg-primary/10"
                   )}>
-                    {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
+                    {isDone ? <CheckCircle2 className="w-6 h-6" /> : isPending ? <Hourglass className="w-6 h-6 animate-pulse" /> : <Circle className="w-6 h-6" />}
                   </div>
                   <div>
-                    <h3 className={cn("font-bold", isCompleted && "line-through text-muted-foreground")}>
+                    <h3 className={cn("font-bold", isDone && "line-through text-muted-foreground")}>
                       {task.title}
                     </h3>
                     <span className="text-[10px] font-bold text-secondary uppercase tracking-tight flex items-center gap-1">
@@ -130,7 +142,7 @@ export default function TasksPage() {
                   </div>
                 </div>
                 
-                {!isCompleted && (
+                {!status && (
                   <Button 
                     size="sm" 
                     onClick={() => handleTaskSubmit(task)}
@@ -141,7 +153,13 @@ export default function TasksPage() {
                   </Button>
                 )}
                 
-                {isCompleted && (
+                {isPending && (
+                  <div className="text-[10px] font-bold py-1 px-3 rounded-full bg-yellow-500/10 text-yellow-600 uppercase">
+                    Waiting...
+                  </div>
+                )}
+
+                {isDone && (
                   <div className="text-[10px] font-bold py-1 px-3 rounded-full bg-green-500/10 text-green-600 uppercase">
                     Done!
                   </div>
