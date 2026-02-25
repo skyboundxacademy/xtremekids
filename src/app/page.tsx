@@ -1,3 +1,4 @@
+
 "use client"
 
 import { BottomNav } from "@/components/BottomNav";
@@ -7,9 +8,18 @@ import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList } from "luci
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useUser, useFirestore, useDoc } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  const { user } = useUser();
+  const db = useFirestore();
+  
+  // Get real user profile data
+  const userProfileRef = user ? doc(db, 'users', user.uid) : null;
+  const { data: profile } = useDoc<any>(userProfileRef);
+
   useEffect(() => setMounted(true), []);
 
   if (!mounted) return null;
@@ -20,7 +30,7 @@ export default function Home() {
       <header className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-            Hi, Explorer! <Sparkles className="text-secondary animate-pulse" />
+            Hi, {profile?.displayName || 'Explorer'}! <Sparkles className="text-secondary animate-pulse" />
           </h1>
           <p className="text-muted-foreground font-medium">Ready for an adventure today?</p>
         </div>
@@ -28,7 +38,7 @@ export default function Home() {
           <Link href="/profile">
             <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/20 relative">
               <Image 
-                src="https://picsum.photos/seed/avatar-hero/100/100" 
+                src={user?.photoURL || "https://picsum.photos/seed/avatar-hero/100/100"} 
                 alt="Avatar" 
                 fill 
                 className="object-cover"
@@ -47,7 +57,7 @@ export default function Home() {
             <div className="bg-secondary/20 p-3 rounded-2xl mb-2">
               <Star className="text-secondary fill-secondary" />
             </div>
-            <span className="text-lg font-bold">120</span>
+            <span className="text-lg font-bold">{profile?.totalStars || 0}</span>
             <span className="text-xs text-muted-foreground uppercase font-semibold">Stars</span>
           </div>
           <div className="w-px h-12 bg-primary/10" />
@@ -55,7 +65,7 @@ export default function Home() {
             <div className="bg-primary/20 p-3 rounded-2xl mb-2">
               <Trophy className="text-primary" />
             </div>
-            <span className="text-lg font-bold">5</span>
+            <span className="text-lg font-bold">{profile?.badges?.length || 0}</span>
             <span className="text-xs text-muted-foreground uppercase font-semibold">Badges</span>
           </div>
         </CardContent>
