@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Save, Trash2, LayoutDashboard, CheckCircle, XCircle, Users, Upload } from "lucide-react";
+import { ArrowLeft, Plus, CheckCircle, XCircle, Users, Upload, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, increment, query, orderBy, serverTimestamp } from "firebase/firestore";
@@ -20,7 +20,7 @@ export default function AdminPage() {
   const db = useFirestore();
   const [loading, setLoading] = useState(false);
 
-  // Real-time submissions query memoized correctly
+  // Real-time submissions query
   const submissionsQuery = useMemoFirebase(() => {
     return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
   }, [db]);
@@ -50,7 +50,7 @@ export default function AdminPage() {
         toast({ title: "Success!", description: "New adventure added!" });
         setNewLesson({ title: '', category: 'Space', description: '', content: '', imageUrl: 'https://picsum.photos/seed/new/600/400' });
       })
-      .catch(async (err) => {
+      .catch(async () => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: newLesson }));
       })
       .finally(() => setLoading(false));
@@ -59,14 +59,34 @@ export default function AdminPage() {
   const handleApprove = (submission: any) => {
     // 1. Approve submission
     updateDoc(doc(db, 'submissions', submission.id), { status: 'approved' })
-      .catch(async () => errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `submissions/${submission.id}`, operation: 'update' })));
+      .then(() => {
+        // 2. Award stars to user profile in Firestore
+        return updateDoc(doc(db, 'users', submission.userId), { 
+          totalStars: increment(submission.points || 0) 
+        });
+      })
+      .then(() => {
+        toast({ title: "Approved!", description: `Explorer ${submission.userName} received ${submission.points} stars!` });
+      })
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: `submissions/${submission.id}`, 
+          operation: 'update' 
+        }));
+      });
+  };
 
-    // 2. Award stars to user
-    updateDoc(doc(db, 'users', submission.userId), { 
-      totalStars: increment(submission.points || 0) 
-    }).then(() => {
-      toast({ title: "Approved!", description: `Explorer ${submission.userName} received ${submission.points} stars!` });
-    }).catch(async () => errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `users/${submission.userId}`, operation: 'update' })));
+  const handleReject = (submission: any) => {
+    updateDoc(doc(db, 'submissions', submission.id), { status: 'rejected' })
+      .then(() => {
+        toast({ title: "Mission Rejected", description: "Submission marked as rejected." });
+      })
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: `submissions/${submission.id}`, 
+          operation: 'update' 
+        }));
+      });
   };
 
   return (
@@ -116,6 +136,7 @@ export default function AdminPage() {
                     <Button 
                       size="sm" 
                       variant="outline" 
+                      onClick={() => handleReject(sub)}
                       className="rounded-xl text-destructive border-destructive/20 hover:bg-destructive/5"
                     >
                       <XCircle className="w-4 h-4" /> Reject

@@ -1,13 +1,56 @@
+
 "use client"
 
 import { BottomNav } from "@/components/BottomNav";
 import { mockTasks } from "@/lib/mock-data";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, Circle, Cloud, Sparkles, Star } from "lucide-react";
+import { CheckCircle2, Circle, Cloud, Sparkles, Star, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
+import { useUser, useFirestore } from "@/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { Button } from "@/components/ui/button";
 
 export default function TasksPage() {
+  const { user } = useUser();
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
+
+  const handleTaskSubmit = (task: any) => {
+    if (!user) return;
+    setSubmittingId(task.id);
+
+    const submissionData = {
+      userId: user.uid,
+      userName: user.displayName || "Explorer",
+      taskTitle: task.title,
+      points: task.points,
+      status: "pending",
+      timestamp: serverTimestamp()
+    };
+
+    addDoc(collection(db, "submissions"), submissionData)
+      .then(() => {
+        toast({ 
+          title: "Mission Sent!", 
+          description: `Professor Sky will mark "${task.title}" soon. Keep it up!` 
+        });
+      })
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: 'submissions', 
+          operation: 'create', 
+          requestResourceData: submissionData 
+        }));
+      })
+      .finally(() => setSubmittingId(null));
+  };
+
   const completedCount = mockTasks.filter(t => t.completed).length;
   const progress = (completedCount / mockTasks.length) * 100;
 
@@ -35,14 +78,14 @@ export default function TasksPage() {
         </h2>
         {mockTasks.map((task) => (
           <Card key={task.id} className={cn(
-            "border-none kid-card-shadow transition-all",
+            "border-none kid-card-shadow transition-all group",
             task.completed ? "bg-primary/5 opacity-80" : "bg-white"
           )}>
             <CardContent className="p-5 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className={cn(
-                  "w-10 h-10 rounded-2xl flex items-center justify-center",
-                  task.completed ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                  "w-10 h-10 rounded-2xl flex items-center justify-center transition-colors",
+                  task.completed ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground group-hover:bg-primary/10"
                 )}>
                   {task.completed ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
                 </div>
@@ -55,9 +98,23 @@ export default function TasksPage() {
                   </span>
                 </div>
               </div>
-              <div className="text-[10px] font-bold py-1 px-3 rounded-full bg-secondary/10 text-secondary uppercase">
-                {task.type}
-              </div>
+              
+              {!task.completed && (
+                <Button 
+                  size="sm" 
+                  onClick={() => handleTaskSubmit(task)}
+                  disabled={submittingId === task.id}
+                  className="rounded-full h-8 px-4 bg-secondary hover:bg-secondary/90 text-[10px] font-bold uppercase tracking-wider"
+                >
+                  {submittingId === task.id ? "..." : <><Send className="w-3 h-3 mr-1" /> Submit</>}
+                </Button>
+              )}
+              
+              {task.completed && (
+                <div className="text-[10px] font-bold py-1 px-3 rounded-full bg-green-500/10 text-green-600 uppercase">
+                  Done!
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}

@@ -1,27 +1,32 @@
+
 "use client"
 
 import { useParams, useRouter } from "next/navigation";
 import { mockLessons } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Sparkles, Wand2, ArrowRight } from "lucide-react";
+import { ChevronLeft, Sparkles, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { lessonKeyTakeaways } from "@/ai/flows/lesson-key-takeaways";
-import { explainConcept } from "@/ai/flows/concept-explainer";
 import { generateEncouragement } from "@/ai/flows/ai-encouragement";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useUser, useFirestore } from "@/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 export default function LessonDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useUser();
+  const db = useFirestore();
   const lesson = mockLessons.find(l => l.id === id);
   
   const [takeaway, setTakeaway] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
-  const [isExplaining, setIsExplaining] = useState(false);
-  const [explanation, setExplanation] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!lesson) return <div>Lesson not found</div>;
 
@@ -38,17 +43,41 @@ export default function LessonDetailPage() {
   };
 
   const handleFinish = async () => {
-    try {
-      const msg = await generateEncouragement({
-        childName: "Explorer",
-        contentType: "lesson",
-        contentTitle: lesson.title
-      });
-      toast({ title: "Great Job!", description: msg.message });
-      router.push('/academy');
-    } catch (e) {
-      router.push('/academy');
-    }
+    if (!user) return;
+    setIsSubmitting(true);
+    
+    // Create a real submission in Firestore for the Admin to mark
+    const submissionData = {
+      userId: user.uid,
+      userName: user.displayName || "Explorer",
+      taskTitle: `Completed Lesson: ${lesson.title}`,
+      points: 25, // Fixed points for lessons
+      status: "pending",
+      timestamp: serverTimestamp()
+    };
+
+    addDoc(collection(db, "submissions"), submissionData)
+      .then(async () => {
+        try {
+          const msg = await generateEncouragement({
+            childName: user.displayName || "Explorer",
+            contentType: "lesson",
+            contentTitle: lesson.title
+          });
+          toast({ title: "Mission Submitted!", description: msg.message });
+        } catch (e) {
+          toast({ title: "Well Done!", description: "Your teacher will mark your work soon!" });
+        }
+        router.push('/academy');
+      })
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: 'submissions', 
+          operation: 'create', 
+          requestResourceData: submissionData 
+        }));
+      })
+      .finally(() => setIsSubmitting(false));
   };
 
   return (
@@ -100,9 +129,10 @@ export default function LessonDetailPage() {
         <div className="flex gap-4">
           <Button 
             onClick={handleFinish}
+            disabled={isSubmitting}
             className="flex-1 rounded-2xl h-14 bg-secondary hover:bg-secondary/90 shadow-lg font-bold text-lg"
           >
-            Finish Lesson <ArrowRight className="ml-2 w-5 h-5" />
+            {isSubmitting ? "Sending..." : "Finish Lesson"} <ArrowRight className="ml-2 w-5 h-5" />
           </Button>
         </div>
       </div>
