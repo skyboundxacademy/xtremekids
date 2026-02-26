@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Heart, User, Sparkles, Loader2, Plus, Globe, Send, ArrowLeft, Search, Repeat2, MessageSquare, CheckCircle2, ShieldCheck, ChevronDown, ChevronUp } from "lucide-react";
+import { Heart, User, Sparkles, Loader2, Plus, Globe, Send, ArrowLeft, Search, Repeat2, MessageSquare, CheckCircle2, ShieldCheck, ChevronDown, ChevronUp, Bell } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit, increment, onSnapshot } from "firebase/firestore";
@@ -46,14 +46,7 @@ function PostComments({ postId }: { postId: string }) {
     const q = query(collection(db, `posts/${postId}/comments`));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
-      setComments(data.sort((a, b) => {
-        if ((b.likesCount || 0) !== (a.likesCount || 0)) {
-          return (b.likesCount || 0) - (a.likesCount || 0);
-        }
-        const timeA = a.timestamp?.seconds || 0;
-        const timeB = b.timestamp?.seconds || 0;
-        return timeB - timeA;
-      }));
+      setComments(data.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0)));
     });
     return () => unsubscribe();
   }, [db, postId]);
@@ -241,6 +234,50 @@ function PostCard({ post, allUsers }: { post: any, allUsers: any[] }) {
   );
 }
 
+function InboxUserCard({ u, currentUser, onClick }: { u: any, currentUser: any, onClick: () => void }) {
+  const db = useFirestore();
+  const [lastMsg, setLastMsg] = useState<string>("");
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    if (!currentUser || !u) return;
+    const q = query(
+      collection(db, "messages"),
+      where("participants", "array-contains", currentUser.uid)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs
+        .map(d => d.data())
+        .filter((m: any) => m.participants.includes(u.id))
+        .sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+      
+      setTotal(msgs.length);
+      if (msgs.length > 0) {
+        setLastMsg((msgs[0] as any).text);
+      }
+    });
+    return () => unsubscribe();
+  }, [db, currentUser, u]);
+
+  return (
+    <Card className="border-none kid-card-shadow bg-white rounded-[2rem] p-5 flex items-center gap-4 cursor-pointer active:scale-95 transition-all hover:bg-slate-50 relative overflow-hidden" onClick={onClick}>
+      <div className="w-16 h-16 rounded-2xl bg-primary/10 relative overflow-hidden border-2 border-primary/5 shrink-0">
+        <Image src={u.photoURL || `https://picsum.photos/seed/${u.id}/100/100`} alt={u.displayName} fill className="object-cover" unoptimized />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-center mb-1">
+          <h4 className="font-black text-slate-800 text-base leading-tight truncate">{u.displayName || "Explorer"}</h4>
+          {total > 0 && <span className="bg-primary text-white text-[9px] font-black px-2 py-0.5 rounded-full">{total}</span>}
+        </div>
+        <p className="text-xs text-slate-400 truncate font-medium italic">
+          {lastMsg || `Level: ${u.totalStars || 0} Stars`}
+        </p>
+      </div>
+      {total > 0 && <div className="absolute right-0 top-0 w-1.5 h-full bg-primary/10" />}
+    </Card>
+  );
+}
+
 export default function LabPage() {
   const { user } = useUser();
   const db = useFirestore();
@@ -274,11 +311,7 @@ export default function LabPage() {
       const msgs = snapshot.docs
         .map(d => ({ ...d.data(), id: d.id }))
         .filter((m: any) => m.participants.includes(selectedUser.id))
-        .sort((a: any, b: any) => {
-           const timeA = a.timestamp?.seconds || 0;
-           const timeB = b.timestamp?.seconds || 0;
-           return timeA - timeB;
-        });
+        .sort((a: any, b: any) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
       setActiveMessages(msgs);
     });
     return () => unsubscribe();
@@ -342,12 +375,16 @@ export default function LabPage() {
         <h1 className="text-3xl font-black text-primary flex items-center gap-2 uppercase tracking-tighter italic">
           The Lab <Globe className="text-secondary animate-float" />
         </h1>
+        {activeTab === 'messages' && <div className="bg-primary/10 p-2 rounded-xl"><Bell className="w-5 h-5 text-primary" /></div>}
       </header>
 
       <Tabs defaultValue="social" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2 mb-8 bg-white p-1 rounded-3xl kid-card-shadow h-16">
           <TabsTrigger value="social" className="rounded-2xl font-black uppercase tracking-tighter">Feed</TabsTrigger>
-          <TabsTrigger value="messages" className="rounded-2xl font-black uppercase tracking-tighter">Inbox</TabsTrigger>
+          <TabsTrigger value="messages" className="rounded-2xl font-black uppercase tracking-tighter relative">
+            Inbox
+            {allUsers && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white" />}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="social">
@@ -402,15 +439,12 @@ export default function LabPage() {
               </div>
               <div className="grid gap-4">
                 {filteredUsers.map(u => (
-                  <Card key={u.id} className="border-none kid-card-shadow bg-white rounded-[2rem] p-6 flex items-center gap-4 cursor-pointer active:scale-95 transition-all hover:bg-slate-50" onClick={() => setSelectedUser(u)}>
-                    <div className="w-16 h-16 rounded-2xl bg-primary/10 relative overflow-hidden border-2 border-primary/5">
-                      <Image src={u.photoURL || `https://picsum.photos/seed/${u.id}/100/100`} alt={u.displayName} fill className="object-cover" unoptimized />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-slate-800 text-lg leading-tight mb-1">{u.displayName || "Explorer"}</h4>
-                      <p className="text-[10px] font-black text-primary uppercase tracking-widest opacity-60 italic">Level: {u.totalStars || 0} Stars</p>
-                    </div>
-                  </Card>
+                  <InboxUserCard 
+                    key={u.id} 
+                    u={u} 
+                    currentUser={user} 
+                    onClick={() => setSelectedUser(u)} 
+                  />
                 ))}
               </div>
             </div>
