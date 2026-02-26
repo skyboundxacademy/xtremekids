@@ -48,6 +48,8 @@ export default function LessonDetailPage() {
     if (!user || !lesson || isCompleted) return;
     setIsSubmitting(true);
 
+    // AD TRIGGER: MONETAG AD PLACEHOLDER (Show ad before rewarding)
+
     const submissionData = {
       userId: user.uid,
       userName: user.displayName || "Explorer",

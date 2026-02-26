@@ -91,10 +91,6 @@
       "schema": { "$ref": "#/backend/entities/Lesson" },
       "description": "Lessons curriculum."
     },
-    "/tasks/{taskId}": {
-      "schema": { "$ref": "#/backend/entities/Task" },
-      "description": "Missions list."
-    },
     "/quizzes/{quizId}": {
       "schema": { "$ref": "#/backend/entities/Quiz" },
       "description": "Knowledge tests."

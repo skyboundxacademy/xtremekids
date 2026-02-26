@@ -4,25 +4,32 @@
 import { BottomNav } from "@/components/BottomNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList, Loader2, ArrowRight, BookOpen } from "lucide-react";
+import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList, Loader2, ArrowRight, BookOpen, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, limit, orderBy } from "firebase/firestore";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const [mounted, setMounted] = useState(false);
+  const [lessonIndex, setLessonIndex] = useState(0);
   
   const userProfileRef = useMemoFirebase(() => {
     return user ? doc(db, 'users', user.uid) : null;
   }, [db, user]);
   
   const { data: profile } = useDoc<any>(userProfileRef);
+
+  const topLessonsQuery = useMemoFirebase(() => {
+    return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'), limit(3));
+  }, [db]);
+  const { data: topLessons } = useCollection<any>(topLessonsQuery);
 
   const leaderboardQuery = useMemoFirebase(() => {
     return query(collection(db, 'users'), orderBy('totalStars', 'desc'), limit(5));
@@ -31,10 +38,20 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    if (!isUserLoading && user && profile && !profile.onboardingCompleted) {
+    // Onboarding Guard: Redirct if not completed
+    if (!isUserLoading && user && profile && profile.onboardingCompleted === false) {
       router.push("/onboarding");
     }
   }, [user, isUserLoading, profile, router]);
+
+  // Rotating Banner Logic
+  useEffect(() => {
+    if (!topLessons || topLessons.length <= 1) return;
+    const interval = setInterval(() => {
+      setLessonIndex((prev) => (prev + 1) % topLessons.length);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [topLessons]);
 
   if (!mounted || isUserLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
@@ -55,6 +72,40 @@ export default function Home() {
           <Image src={user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`} alt="Avatar" fill className="object-cover" unoptimized />
         </Link>
       </header>
+
+      {/* Rotating Top Lesson Banner */}
+      <section className="mb-8">
+        <h2 className="text-xs font-bold text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
+          Featured Course <Sparkles className="w-3 h-3 text-secondary" />
+        </h2>
+        {topLessons && topLessons.length > 0 ? (
+          <Link href={`/academy/${topLessons[lessonIndex].id}`}>
+            <Card className="border-none kid-card-shadow bg-primary text-white rounded-[2rem] overflow-hidden relative h-44 group">
+              <Image 
+                src={topLessons[lessonIndex].imageUrl || `https://picsum.photos/seed/${topLessons[lessonIndex].id}/800/600`} 
+                alt="Banner" 
+                fill 
+                className="object-cover opacity-40 group-hover:scale-105 transition-transform" 
+                unoptimized
+              />
+              <div className="absolute inset-0 p-6 flex flex-col justify-end">
+                <span className="text-[10px] font-bold uppercase mb-1 opacity-80">{topLessons[lessonIndex].category}</span>
+                <h3 className="text-xl font-black leading-tight mb-2">{topLessons[lessonIndex].title}</h3>
+                <div className="flex items-center gap-1 text-[10px] font-bold">
+                  Start Learning <ChevronRight className="w-3 h-3" />
+                </div>
+              </div>
+              <div className="absolute top-4 right-4 flex gap-1">
+                {topLessons.map((_, i) => (
+                  <div key={i} className={cn("w-1.5 h-1.5 rounded-full bg-white transition-opacity", i === lessonIndex ? "opacity-100" : "opacity-30")} />
+                ))}
+              </div>
+            </Card>
+          </Link>
+        ) : (
+          <div className="h-44 bg-slate-100 rounded-[2rem] animate-pulse" />
+        )}
+      </section>
 
       <section className="grid grid-cols-2 gap-4 mb-8">
         <Card className="bg-primary/5 border-none kid-card-shadow rounded-3xl p-6 text-center">
