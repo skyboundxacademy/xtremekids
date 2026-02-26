@@ -84,7 +84,7 @@ export default function LessonDetailPage() {
     );
   }
 
-  if (!lesson || !lesson.steps || !lesson.steps[currentStep]) {
+  if (!lesson || !lesson.steps || lesson.steps.length === 0 || !lesson.steps[currentStep]) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-4">
         <HelpCircle className="w-12 h-12 text-slate-200" />
@@ -110,13 +110,16 @@ export default function LessonDetailPage() {
       timestamp: serverTimestamp()
     };
 
-    addDoc(collection(db, "submissions"), submissionData)
-      .then(() => {
-        toast({ title: "Excellence Achieved!", description: "You've earned your Certificate!" });
-        setIsCompleted(true);
-        router.push('/academy');
-      })
-      .finally(() => setIsSubmitting(false));
+    try {
+      await addDoc(collection(db, "submissions"), submissionData);
+      toast({ title: "Excellence Achieved!", description: "You've earned your Certificate!" });
+      setIsCompleted(true);
+      router.push('/academy');
+    } catch (e) {
+      toast({ title: "Submission Failed", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

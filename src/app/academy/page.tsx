@@ -17,21 +17,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const SUBJECTS = [
-  { name: "Mathematics", icon: "https://picsum.photos/seed/math/400/300", category: "Mathematics" },
-  { name: "English Language", icon: "https://picsum.photos/seed/english/400/300", category: "English Language" },
-  { name: "Physics", icon: "https://picsum.photos/seed/physics/400/300", category: "Physics" },
-  { name: "Chemistry", icon: "https://picsum.photos/seed/chemistry/400/300", category: "Chemistry" },
-  { name: "Biology", icon: "https://picsum.photos/seed/biology/400/300", category: "Biology" },
-  { name: "ICT", icon: "https://picsum.photos/seed/ict/400/300", category: "ICT / Data Processing" },
-  { name: "Geography", icon: "https://picsum.photos/seed/earth/400/300", category: "Geography" },
-  { name: "Economics", icon: "https://picsum.photos/seed/money/400/300", category: "Economics" },
-  { name: "Government", icon: "https://picsum.photos/seed/law/400/300", category: "Government" },
-  { name: "Civic Education", icon: "https://picsum.photos/seed/peace/400/300", category: "Civic Education" },
-  { name: "Agric Science", icon: "https://picsum.photos/seed/farm/400/300", category: "Agricultural Science" },
-  { name: "Visual Arts", icon: "https://picsum.photos/seed/art/400/300", category: "Visual Arts" },
-  { name: "Technical Drawing", icon: "https://picsum.photos/seed/draft/400/300", category: "Technical Drawing" },
-  { name: "Further Maths", icon: "https://picsum.photos/seed/advanced-math/400/300", category: "Further Mathematics" },
-  { name: "Literature", icon: "https://picsum.photos/seed/books/400/300", category: "Literature-in-English" }
+  { name: "Mathematics", icon: "https://picsum.photos/seed/math-class/400/300", category: "Mathematics" },
+  { name: "English Language", icon: "https://picsum.photos/seed/library-books/400/300", category: "English Language" },
+  { name: "Physics", icon: "https://picsum.photos/seed/atom-physics/400/300", category: "Physics" },
+  { name: "Chemistry", icon: "https://picsum.photos/seed/chemistry-flasks/400/300", category: "Chemistry" },
+  { name: "Biology", icon: "https://picsum.photos/seed/microscope-biology/400/300", category: "Biology" },
+  { name: "ICT / Data", icon: "https://picsum.photos/seed/coding-laptop/400/300", category: "ICT / Data Processing" },
+  { name: "Geography", icon: "https://picsum.photos/seed/earth-globe/400/300", category: "Geography" },
+  { name: "Economics", icon: "https://picsum.photos/seed/money-chart/400/300", category: "Economics" },
+  { name: "Government", icon: "https://picsum.photos/seed/justice-law/400/300", category: "Government" },
+  { name: "Civic Ed", icon: "https://picsum.photos/seed/peace-human/400/300", category: "Civic Education" },
+  { name: "Agric Science", icon: "https://picsum.photos/seed/farm-agric/400/300", category: "Agricultural Science" },
+  { name: "Visual Arts", icon: "https://picsum.photos/seed/painting-art/400/300", category: "Visual Arts" },
+  { name: "Tech Drawing", icon: "https://picsum.photos/seed/drawing-plans/400/300", category: "Technical Drawing" },
+  { name: "Further Maths", icon: "https://picsum.photos/seed/advanced-calc/400/300", category: "Further Mathematics" },
+  { name: "Literature", icon: "https://picsum.photos/seed/story-books/400/300", category: "Literature-in-English" }
 ];
 
 export default function AcademyPage() {
@@ -51,21 +51,25 @@ export default function AcademyPage() {
   useEffect(() => {
     if (!user) return;
     const fetchCompletion = async () => {
-      const q = query(collection(db, "submissions"), where("userId", "==", user.uid));
-      const snapshot = await getDocs(q);
-      const titles = new Set(snapshot.docs.map(doc => doc.data().taskTitle));
-      setCompletedTitles(titles);
+      try {
+        const q = query(collection(db, "submissions"), where("userId", "==", user.uid));
+        const snapshot = await getDocs(q);
+        const titles = new Set(snapshot.docs.map(doc => doc.data().taskTitle));
+        setCompletedTitles(titles);
+      } catch (e) {
+        console.warn("Completion fetch failed", e);
+      }
     };
     fetchCompletion();
   }, [user, db]);
 
-  const filteredLessons = lessons?.filter(l => {
+  const filteredLessons = lessons?.filter((l: any) => {
     const matchesSearch = l.title.toLowerCase().includes(search.toLowerCase());
     const matchesSubject = !selectedSubject || l.subject === selectedSubject || l.category === selectedSubject;
     return matchesSearch && matchesSubject;
   }) || [];
 
-  const enrolledLessons = lessons?.filter(l => completedTitles.has(`Completed Lesson: ${l.title}`)) || [];
+  const enrolledLessons = lessons?.filter((l: any) => completedTitles.has(`Completed Lesson: ${l.title}`)) || [];
 
   const LessonGrid = ({ list }: { list: any[] }) => (
     <div className="space-y-6">
@@ -187,7 +191,7 @@ export default function AcademyPage() {
           ) : (
             <div className="text-center py-20 bg-white rounded-[2rem] kid-card-shadow">
               <Compass className="w-12 h-12 text-primary/10 mx-auto mb-4" />
-              <p className="font-black text-slate-400 uppercase tracking-widest italic text-xs">Your academic journey starts here. Explore subjects!</p>
+              <p className="font-black text-slate-400 uppercase tracking-widest italic text-xs px-10">Your academic journey starts here. Explore subjects!</p>
             </div>
           )}
         </TabsContent>

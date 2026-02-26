@@ -61,7 +61,12 @@ export default function Home() {
   }, [topLessons]);
 
   if (!mounted || isUserLoading || (!user && mounted)) {
-    return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white p-10 text-center">
+        <Loader2 className="animate-spin text-primary mb-4" />
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Preparing Elite Academic Path...</p>
+      </div>
+    );
   }
 
   return (
@@ -74,8 +79,8 @@ export default function Home() {
               <Skeleton className="h-4 w-24 mt-1" />
             ) : (
               <div className="flex flex-col">
-                <span>Explorer: {profile?.displayName || "Explorer"}</span>
-                <span className="text-[9px] text-primary/50">{profile?.studentClass || "Academy"}</span>
+                <span className="text-slate-800">Explorer: {profile?.displayName || "Explorer"}</span>
+                <span className="text-[9px] text-primary/50 font-black">{profile?.studentClass || "Academy"}</span>
               </div>
             )}
           </div>
