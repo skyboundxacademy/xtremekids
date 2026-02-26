@@ -42,6 +42,7 @@ function PostComments({ postId }: { postId: string }) {
   const [commentText, setCommentText] = useState("");
 
   useEffect(() => {
+    if (!postId) return;
     const q = query(collection(db, `posts/${postId}/comments`));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
@@ -251,13 +252,15 @@ export default function LabPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const postsQuery = useMemoFirebase(() => {
+    if (!user) return null;
     return query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(50));
-  }, [db]);
+  }, [db, user]);
   const { data: posts, isLoading: isPostsLoading } = useCollection<any>(postsQuery);
 
   const usersQuery = useMemoFirebase(() => {
+    if (!user) return null;
     return query(collection(db, "users"), limit(100));
-  }, [db]);
+  }, [db, user]);
   const { data: allUsers } = useCollection<any>(usersQuery);
 
   const [activeMessages, setActiveMessages] = useState<any[]>([]);

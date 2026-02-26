@@ -4,7 +4,7 @@
 import { BottomNav } from "@/components/BottomNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Cloud, Star, Sparkles, Trophy, Loader2, ArrowRight, BookOpen, ChevronRight } from "lucide-react";
+import { Cloud, Star, Sparkles, Trophy, Loader2, ArrowRight, BookOpen, ChevronRight, ClipboardList } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -28,13 +28,15 @@ export default function Home() {
   const { data: profile, isLoading: isProfileLoading } = useDoc<any>(userProfileRef);
 
   const topLessonsQuery = useMemoFirebase(() => {
+    if (!user) return null;
     return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'), limit(3));
-  }, [db]);
+  }, [db, user]);
   const { data: topLessons, isLoading: isLessonsLoading } = useCollection<any>(topLessonsQuery);
 
   const leaderboardQuery = useMemoFirebase(() => {
+    if (!user) return null;
     return query(collection(db, 'users'), orderBy('totalStars', 'desc'), limit(5));
-  }, [db]);
+  }, [db, user]);
   const { data: topUsers, isLoading: isLeaderboardLoading } = useCollection<any>(leaderboardQuery);
 
   useEffect(() => {
@@ -56,7 +58,10 @@ export default function Home() {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
   }
 
-  if (!user) return null;
+  if (!user && !isUserLoading) {
+    router.push('/login');
+    return null;
+  }
 
   return (
     <main className="min-h-screen pb-32 px-6 pt-12 max-w-md mx-auto">
@@ -70,11 +75,11 @@ export default function Home() {
           </p>
         </div>
         <Link href="/profile" className="w-12 h-12 rounded-2xl bg-primary/10 border-2 border-primary/20 overflow-hidden relative">
-          <Image src={user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`} alt="Avatar" fill className="object-cover" unoptimized />
+          <Image src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} alt="Avatar" fill className="object-cover" unoptimized />
         </Link>
       </header>
 
-      {/* Featured Lesson Lazy Loading */}
+      {/* Featured Lesson Skeleton Loading */}
       <section className="mb-8">
         <h2 className="text-xs font-bold text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
           Featured Course <Sparkles className="w-3 h-3 text-secondary" />
@@ -105,7 +110,7 @@ export default function Home() {
         )}
       </section>
 
-      {/* Stats Lazy Loading */}
+      {/* Stats Skeleton Loading */}
       <section className="grid grid-cols-2 gap-4 mb-8">
         <Card className="bg-primary/5 border-none kid-card-shadow rounded-3xl p-6 text-center">
           <div className="bg-primary/20 w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center">
@@ -123,7 +128,7 @@ export default function Home() {
         </Card>
       </section>
 
-      {/* Leaderboard Lazy Loading */}
+      {/* Leaderboard Skeleton Loading */}
       <section className="mb-8">
         <h2 className="text-xl font-black text-primary mb-4 flex items-center gap-2">
           Star Hall <Trophy className="text-yellow-500 w-5 h-5" />

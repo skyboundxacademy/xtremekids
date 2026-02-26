@@ -16,8 +16,9 @@ export default function LeaderboardPage() {
   const db = useFirestore();
   
   const usersQuery = useMemoFirebase(() => {
+    if (!user) return null;
     return query(collection(db, 'users'), orderBy('totalStars', 'desc'), limit(50));
-  }, [db]);
+  }, [db, user]);
 
   const { data: users, isLoading } = useCollection<any>(usersQuery);
   const [activeStatus, setActiveStatus] = useState<Record<string, boolean>>({});
@@ -67,7 +68,7 @@ export default function LeaderboardPage() {
               <div className="flex items-center gap-4">
                 <span className={`font-black text-2xl w-8 ${index === 0 ? 'text-yellow-500' : 'text-slate-200'}`}>#{index + 1}</span>
                 <div className="w-12 h-12 rounded-2xl overflow-hidden relative border-2 border-primary/10">
-                  <Image src={u.photoURL || `https://picsum.photos/seed/${u.id}/100/100`} alt={u.displayName} fill className="object-cover" />
+                  <Image src={u.photoURL || `https://picsum.photos/seed/${u.id}/100/100`} alt={u.displayName} fill className="object-cover" unoptimized />
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-700 flex items-center gap-1.5 leading-tight">
