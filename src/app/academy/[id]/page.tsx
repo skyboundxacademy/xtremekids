@@ -3,13 +3,14 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Sparkles, ArrowRight, ArrowLeft, Loader2, CheckCircle2, Award } from "lucide-react";
+import { ChevronLeft, Sparkles, ArrowRight, ArrowLeft, Loader2, CheckCircle2, Award, Info, HelpCircle } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, serverTimestamp, doc, query, where, getDocs } from "firebase/firestore";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 export default function LessonDetailPage() {
   const { id } = useParams();
@@ -18,16 +19,16 @@ export default function LessonDetailPage() {
   const { user } = useUser();
   const db = useFirestore();
 
-  const lessonRef = useMemoFirebase(() => {
-    return id ? doc(db, 'lessons', id as string) : null;
-  }, [db, id]);
-
+  const lessonRef = useMemoFirebase(() => id ? doc(db, 'lessons', id as string) : null, [db, id]);
   const { data: lesson, isLoading: isLessonLoading } = useDoc<any>(lessonRef);
   
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [checkingCompletion, setCheckingCompletion] = useState(true);
+  
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !lesson) return;
@@ -44,36 +45,56 @@ export default function LessonDetailPage() {
     checkStatus();
   }, [user, lesson, db]);
 
+  const handlePollSubmit = (option: string, correct: string, feedback: string) => {
+    setSelectedOption(option);
+    if (option !== correct) {
+      setAiFeedback(feedback);
+    } else {
+      setAiFeedback(null);
+      toast({ title: "Brilliant!", description: "You got it exactly right." });
+    }
+  };
+
+  const handleNext = () => {
+    const step = lesson.steps[currentStep];
+    if (step.type === 'poll' && !selectedOption) {
+      toast({ title: "Wait!", description: "Professor Sky needs your answer first!" });
+      return;
+    }
+    if (currentStep < lesson.steps.length - 1) {
+      setCurrentStep(prev => prev + 1);
+      setSelectedOption(null);
+      setAiFeedback(null);
+    }
+  };
+
   const handleFinish = async () => {
     if (!user || !lesson || isCompleted) return;
     setIsSubmitting(true);
-
-    // AD TRIGGER: MONETAG AD PLACEHOLDER (Show ad before rewarding)
 
     const submissionData = {
       userId: user.uid,
       userName: user.displayName || "Explorer",
       taskTitle: `Completed Lesson: ${lesson.title}`,
-      points: 0, 
-      rewardType: 'badge',
-      status: "pending",
+      points: 100, 
+      status: "approved",
       timestamp: serverTimestamp()
     };
 
     addDoc(collection(db, "submissions"), submissionData)
       .then(() => {
-        toast({ title: "Lesson Finished!", description: "Professor Sky will award your badge soon!" });
+        toast({ title: "Excellence Achieved!", description: "You've earned your Badge!" });
         setIsCompleted(true);
         router.push('/academy');
       })
       .finally(() => setIsSubmitting(false));
   };
 
-  if (isLessonLoading || checkingCompletion) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
-  if (!lesson) return <div className="p-10 text-center font-bold">Lesson not found</div>;
+  if (isLessonLoading || checkingCompletion) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" /></div>;
+  if (!lesson) return <div className="p-10 text-center font-black uppercase text-slate-300">Lesson not found</div>;
 
-  const steps = lesson.steps || [lesson.content]; // Fallback if no steps array
-  const progress = ((currentStep + 1) / steps.length) * 100;
+  const step = lesson.steps[currentStep];
+  const progress = ((currentStep + 1) / lesson.steps.length) * 100;
 
   return (
     <main className="min-h-screen bg-white max-w-md mx-auto relative pb-32">
@@ -81,52 +102,91 @@ export default function LessonDetailPage() {
         <ChevronLeft className="w-6 h-6" />
       </button>
 
-      <div className="relative h-60 w-full">
+      <div className="relative h-64 w-full">
         <Image 
-          src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.title}/800/600`} 
-          alt={lesson.title} 
+          src={step.imageUrl || lesson.imageUrl || `https://picsum.photos/seed/${lesson.title}/800/600`} 
+          alt="Step Image" 
           fill 
-          className="object-cover" 
+          className="object-cover transition-all duration-700" 
           unoptimized
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
-          <h1 className="text-2xl font-black text-white">{lesson.title}</h1>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
+           <h1 className="text-2xl font-black text-white leading-tight">{lesson.title}</h1>
+           <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-2">Elite Academic Path</span>
         </div>
       </div>
 
-      <div className="px-6 py-6">
-        <div className="mb-8">
+      <div className="px-8 pt-8">
+        <div className="mb-10">
            <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-bold text-primary uppercase">Content {currentStep + 1} of {steps.length}</span>
-            <span className="text-[10px] font-bold text-primary">{Math.round(progress)}%</span>
+            <span className="text-[10px] font-black text-primary uppercase tracking-widest italic">Section {currentStep + 1} / {lesson.steps.length}</span>
+            <span className="text-[10px] font-black text-primary">{Math.round(progress)}%</span>
            </div>
            <Progress value={progress} className="h-2 rounded-full bg-primary/10" />
         </div>
 
-        <div className="prose prose-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap min-h-[300px] animate-in fade-in slide-in-from-right-2">
-          {steps[currentStep]}
+        <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+          <div className="prose prose-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap mb-10">
+            {step.content}
+          </div>
+
+          {step.type === 'poll' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4 text-secondary">
+                <HelpCircle className="w-5 h-5" />
+                <h4 className="font-black text-lg italic tracking-tight uppercase">{step.poll.question}</h4>
+              </div>
+              <div className="grid gap-3">
+                {step.poll.options.map((opt: string) => (
+                  <button
+                    key={opt}
+                    onClick={() => handlePollSubmit(opt, step.poll.correctAnswer, step.poll.explanation)}
+                    className={cn(
+                      "w-full p-5 rounded-2xl text-left font-bold text-sm transition-all border-2",
+                      selectedOption === opt 
+                        ? (opt === step.poll.correctAnswer ? "bg-green-500/10 border-green-500 text-green-700" : "bg-red-500/10 border-red-500 text-red-700")
+                        : "bg-slate-50 border-slate-100 hover:border-primary/30"
+                    )}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+
+              {aiFeedback && (
+                <div className="mt-6 p-6 bg-purple-600 rounded-3xl text-white relative shadow-xl shadow-purple-200 animate-in zoom-in-95">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Sparkles className="w-4 h-4 text-yellow-300" />
+                    <span className="text-[10px] font-black uppercase tracking-widest italic">Professor Sky Explains</span>
+                  </div>
+                  <p className="text-xs font-bold leading-relaxed">{aiFeedback}</p>
+                  <div className="absolute top-[-8px] right-10 w-4 h-4 bg-purple-600 rotate-45" />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t p-6 flex gap-4 max-w-md mx-auto">
+        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t p-6 flex gap-4 max-w-md mx-auto z-[60]">
           {currentStep > 0 && (
-            <Button onClick={() => setCurrentStep(prev => prev - 1)} variant="outline" className="flex-1 rounded-2xl h-14 font-bold border-primary/20 text-primary">
-              <ArrowLeft className="mr-2" /> Back
+            <Button onClick={() => setCurrentStep(prev => prev - 1)} variant="outline" className="flex-1 rounded-2xl h-14 font-black border-primary/20 text-primary">
+              <ArrowLeft className="mr-2" />
             </Button>
           )}
           
-          {currentStep < steps.length - 1 ? (
-            <Button onClick={() => setCurrentStep(prev => prev + 1)} className="flex-1 rounded-2xl h-14 bg-primary font-bold text-lg kid-card-shadow">
+          {currentStep < lesson.steps.length - 1 ? (
+            <Button onClick={handleNext} className="flex-[2] rounded-2xl h-14 bg-primary font-black text-lg kid-card-shadow uppercase italic tracking-tighter">
               Next Step <ArrowRight className="ml-2" />
             </Button>
           ) : (
-            <div className="flex-1">
+            <div className="flex-[2]">
               {isCompleted ? (
-                <div className="w-full flex items-center justify-center gap-2 h-14 bg-green-500/10 text-green-600 rounded-2xl font-bold border-2 border-green-500/20">
-                  <CheckCircle2 className="w-6 h-6" /> Already Done!
+                <div className="w-full flex items-center justify-center gap-2 h-14 bg-green-500/10 text-green-600 rounded-2xl font-black border-2 border-green-500/20 uppercase">
+                  <CheckCircle2 className="w-6 h-6" /> Certified
                 </div>
               ) : (
-                <Button onClick={handleFinish} disabled={isSubmitting} className="w-full rounded-2xl h-14 bg-primary font-bold text-lg kid-card-shadow">
-                  {isSubmitting ? "Finishing..." : "Complete & Earn"} <Award className="ml-2" />
+                <Button onClick={handleFinish} disabled={isSubmitting} className="w-full rounded-2xl h-14 bg-secondary font-black text-lg kid-card-shadow uppercase italic">
+                  {isSubmitting ? "Certifying..." : "Complete Path"} <Award className="ml-2" />
                 </Button>
               )}
             </div>

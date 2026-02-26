@@ -1,39 +1,40 @@
+
 'use server';
 /**
- * @fileOverview A Genkit flow to auto-generate deep, academic educational lessons and tasks for children.
- * Enforces deep academic structure (at least 500 words, Intro, Types, Advantages, Fun Facts, Summary).
- * Uses a deterministic image engine to ensure real, high-quality images.
+ * @fileOverview A professional Genkit flow to generate high-IQ interactive educational lessons.
+ * Uses real academic schemes of work for Primary and Secondary classes.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
+const StepSchema = z.object({
+  type: z.enum(['text', 'image', 'poll']),
+  content: z.string().describe("Main teaching text for this step."),
+  imageUrl: z.string().optional().describe("A keyword for finding a relevant image."),
+  poll: z.object({
+    question: z.string(),
+    options: z.array(z.string()),
+    correctAnswer: z.string(),
+    explanation: z.string().describe("What Professor Sky says if the student picks the wrong answer.")
+  }).optional()
+});
+
 const ContentGeneratorInputSchema = z.object({
-  type: z.enum(['lessons', 'tasks']),
-  count: z.number().min(1).max(10), // Reduced max to 10 for stability
-  idea: z.string().optional().describe("Admin's specific topic or idea to guide the generation."),
-});
-
-const LessonSchema = z.object({
   title: z.string(),
-  category: z.string(),
-  description: z.string().describe("A 2-sentence summary of the lesson."),
-  content: z.string().describe("Extremely deep, long-form academic lesson notes (at least 500 words)."),
-  imageUrl: z.string(),
-});
-
-const TaskSchema = z.object({
-  title: z.string(),
-  points: z.number(),
-  type: z.enum(['daily', 'weekly']),
+  subject: z.string(),
+  targetClass: z.string(),
+  idea: z.string().optional()
 });
 
 const ContentGeneratorOutputSchema = z.object({
-  lessons: z.array(LessonSchema).optional(),
-  tasks: z.array(TaskSchema).optional(),
+  description: z.string().describe("2-sentence summary."),
+  category: z.string(),
+  imageUrl: z.string().describe("A main card image keyword."),
+  steps: z.array(StepSchema)
 });
 
-export async function generateBulkContent(input: { type: 'lessons' | 'tasks', count: number, idea?: string }) {
+export async function generateDeepLesson(input: z.infer<typeof ContentGeneratorInputSchema>) {
   return contentGeneratorFlow(input);
 }
 
@@ -44,23 +45,19 @@ const contentGeneratorFlow = ai.defineFlow(
     outputSchema: ContentGeneratorOutputSchema,
   },
   async (input) => {
-    const promptText = input.type === 'lessons' 
-      ? `Generate ${input.count} extremely detailed ACADEMIC educational lessons for children aged 8-12. 
-         Idea/Topic focus: ${input.idea || 'General Knowledge, Science, and History'}.
+    const promptText = `Generate a high-IQ, deep academic lesson for ${input.targetClass} on the subject of ${input.subject}.
+         Topic: ${input.title}.
+         Specific Focus: ${input.idea || 'Complete academic coverage based on official schemes of work'}.
          
-         CRITICAL ACADEMIC RULE: The 'content' field must be a full LESSON NOTE (at least 500 words). It MUST include:
-         1. INTRODUCTION: Define the topic and its origin.
-         2. TYPES & CLASSIFICATIONS: Detailed list of categories or variations.
-         3. ADVANTAGES & DISADVANTAGES: Why is this important? What are the risks?
-         4. THE FUTURE: How will this topic change in 20 years?
-         5. FUN FACTS: 5 surprising facts for kids.
-         6. SUMMARY: A wrap-up.
+         STRUCTURE:
+         At least 8-10 steps.
+         - Step 1: Hook the student with a 'Yes/No' poll (e.g., 'Have you ever visited a website?').
+         - Steps 2-7: Deep academic teaching using 'text', 'image' steps, and interactive 'poll' steps to check understanding.
+         - Step 8-10: Advanced concepts and Summary.
          
-         IMAGE RULE: Provide a single keyword representing the subject.
+         POLL RULE: For every poll, provide a corrective explanation that Professor Sky will use if they are wrong.
+         IMAGE RULE: For every step with an image, provide a precise keyword representing the visual (e.g., 'vscode-editor', 'human-heart-diagram').
          
-         Return as JSON.`
-      : `Generate ${input.count} fun daily tasks/missions for children based on this idea: ${input.idea || 'helping at home and learning'}. 
-         Points should be between 20 and 100. 
          Return as JSON.`;
 
     const { output } = await ai.generate({
@@ -68,13 +65,14 @@ const contentGeneratorFlow = ai.defineFlow(
       output: { schema: ContentGeneratorOutputSchema },
     });
 
-    if (output?.lessons) {
-      output.lessons = output.lessons.map(l => {
-        const safeSeed = l.title.toLowerCase().replace(/[^a-z0-9]/g, '-');
-        return {
-          ...l,
-          imageUrl: `https://picsum.photos/seed/${safeSeed}/800/600`
-        };
+    if (output) {
+      // Map keywords to real placeholder seeds
+      output.imageUrl = `https://picsum.photos/seed/${encodeURIComponent(output.imageUrl || input.title)}/800/600`;
+      output.steps = output.steps.map(step => {
+        if (step.imageUrl) {
+          step.imageUrl = `https://picsum.photos/seed/${encodeURIComponent(step.imageUrl)}/800/600`;
+        }
+        return step;
       });
     }
 

@@ -4,7 +4,8 @@
 import { BottomNav } from "@/components/BottomNav";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Cloud, Search, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Cloud, Search, ArrowRight, Loader2, CheckCircle2, GraduationCap, Compass } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -12,6 +13,9 @@ import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy, where, getDocs } from "firebase/firestore";
 import { AppLogo } from "@/components/AppLogo";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const CATEGORIES = ["Mathematics", "English", "Science", "ICT", "Social Studies", "General"];
 
 export default function AcademyPage() {
   const [search, setSearch] = useState("");
@@ -40,100 +44,105 @@ export default function AcademyPage() {
     fetchCompletion();
   }, [user, db]);
 
-  const filteredAndSortedLessons = lessons
-    ?.filter(l => 
-      l.title.toLowerCase().includes(search.toLowerCase()) ||
-      l.category.toLowerCase().includes(search.toLowerCase())
-    )
-    .sort((a, b) => {
-      const aTitle = `Completed Lesson: ${a.title}`;
-      const bTitle = `Completed Lesson: ${b.title}`;
-      const isADone = completedTitles.has(aTitle);
-      const isBDone = completedTitles.has(bTitle);
-      
-      if (isADone && !isBDone) return 1;
-      if (!isADone && isBDone) return -1;
-      return 0;
-    }) || [];
+  const filteredLessons = lessons?.filter(l => 
+    l.title.toLowerCase().includes(search.toLowerCase()) ||
+    l.category.toLowerCase().includes(search.toLowerCase())
+  ) || [];
+
+  const enrolledLessons = filteredLessons.filter(l => completedTitles.has(`Completed Lesson: ${l.title}`));
+  const browseLessons = filteredLessons.filter(l => !completedTitles.has(`Completed Lesson: ${l.title}`));
+
+  const LessonGrid = ({ list }: { list: any[] }) => (
+    <div className="space-y-6">
+      {list.map((lesson) => (
+        <Link key={lesson.id} href={`/academy/${lesson.id}`}>
+          <Card className="overflow-hidden border-none kid-card-shadow bg-white group active:scale-95 transition-all mb-6">
+            <div className="relative h-48 w-full">
+              <Image 
+                src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.title}/800/600`} 
+                alt={lesson.title} 
+                fill 
+                className="object-cover group-hover:scale-105 transition-transform"
+                unoptimized
+              />
+              <Badge className="absolute top-4 left-4 border-none bg-primary/80 backdrop-blur-md">
+                {lesson.category}
+              </Badge>
+              {completedTitles.has(`Completed Lesson: ${lesson.title}`) && (
+                <div className="absolute top-4 right-4 bg-white rounded-full p-1 shadow-lg">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                </div>
+              )}
+            </div>
+            <CardContent className="p-5">
+              <h3 className="text-xl font-black mb-1 text-primary">{lesson.title}</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 italic">Class: {lesson.targetClass || "Academy"}</p>
+              <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-medium italic">
+                {lesson.description || "Elite academic path for global thinkers."}
+              </p>
+              <div className="flex justify-between items-center pt-4 border-t border-slate-50">
+                <span className="text-[10px] font-black text-secondary uppercase tracking-wider">
+                  {completedTitles.has(`Completed Lesson: ${lesson.title}`) ? 'Certified Explorer' : 'Begin Journey'}
+                </span>
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      ))}
+    </div>
+  );
 
   return (
-    <main className="min-h-screen pb-24 px-6 pt-12 max-w-md mx-auto">
+    <main className="min-h-screen pb-24 px-6 pt-12 max-w-md mx-auto bg-slate-50/50">
       <header className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <AppLogo />
-          <Cloud className="text-primary/20 fill-primary/5 animate-float" />
+          <GraduationCap className="text-primary/20 fill-primary/5 animate-float" />
         </div>
-        <p className="text-muted-foreground font-medium mb-6">Learn something amazing today!</p>
-        
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <div className="relative mb-6">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input 
-            className="pl-10 rounded-2xl border-primary/10 bg-white h-12" 
-            placeholder="Search for lessons..." 
+            className="pl-12 rounded-[2rem] border-none bg-white h-14 kid-card-shadow text-base italic" 
+            placeholder="Search academic paths..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </header>
 
-      <section className="space-y-6">
-        {(isLoading || !user) && (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      <Tabs defaultValue="browse">
+        <TabsList className="grid w-full grid-cols-2 mb-8 bg-white p-1 rounded-[2rem] kid-card-shadow h-16">
+          <TabsTrigger value="browse" className="rounded-3xl font-black uppercase tracking-tighter text-xs">
+            <Compass className="w-4 h-4 mr-2" /> Browse
+          </TabsTrigger>
+          <TabsTrigger value="enrolled" className="rounded-3xl font-black uppercase tracking-tighter text-xs">
+            <GraduationCap className="w-4 h-4 mr-2" /> Enrolled
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="browse">
+          <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-6">
+            {CATEGORIES.map(cat => (
+              <Badge key={cat} variant="outline" className="shrink-0 px-4 py-2 rounded-full border-primary/20 font-black text-[10px] uppercase tracking-widest text-primary cursor-pointer hover:bg-primary/5">
+                {cat}
+              </Badge>
+            ))}
           </div>
-        )}
+          {isLoading ? <div className="space-y-4"><Skeleton className="h-64 w-full rounded-3xl" /><Skeleton className="h-64 w-full rounded-3xl" /></div> : <LessonGrid list={browseLessons} />}
+        </TabsContent>
 
-        {!isLoading && user && filteredAndSortedLessons.map((lesson) => {
-          const isDone = completedTitles.has(`Completed Lesson: ${lesson.title}`);
-          const displayImage = lesson.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(lesson.title)}/800/600`;
-
-          return (
-            <Link key={lesson.id} href={`/academy/${lesson.id}`}>
-              <Card className={`overflow-hidden border-none kid-card-shadow relative bg-white group active:scale-95 transition-transform mb-6 ${isDone ? 'opacity-70' : ''}`}>
-                <div className={`diary-tape ${isDone ? 'bg-green-500/20' : 'bg-secondary/20'}`} />
-                <div className="relative h-48 w-full">
-                  <Image 
-                    src={displayImage} 
-                    alt={lesson.title} 
-                    fill 
-                    className="object-cover group-hover:scale-105 transition-transform"
-                    unoptimized
-                  />
-                  <Badge className={`absolute top-4 left-4 border-none ${isDone ? 'bg-green-600' : 'bg-primary/80 backdrop-blur-md'}`}>
-                    {isDone ? 'Finished' : lesson.category}
-                  </Badge>
-                  {isDone && (
-                    <div className="absolute top-4 right-4 bg-white rounded-full p-1 shadow-lg">
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    </div>
-                  )}
-                </div>
-                <CardContent className="p-5">
-                  <h3 className={`text-xl font-bold mb-2 text-primary ${isDone ? 'line-through opacity-50' : ''}`}>{lesson.title}</h3>
-                  <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-medium italic">
-                    {lesson.description || "Deep academic exploration for young masters!"}
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">
-                      {isDone ? 'Review Lesson' : 'Earn Badge'}
-                    </span>
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
-                      <ArrowRight className="w-4 h-4" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-
-        {!isLoading && user && filteredAndSortedLessons.length === 0 && (
-          <div className="text-center py-20">
-            <Cloud className="w-16 h-16 mx-auto text-primary/10 mb-4" />
-            <p className="font-bold text-primary/40">No lessons found matching that!</p>
-          </div>
-        )}
-      </section>
+        <TabsContent value="enrolled">
+          {isLoading ? <Skeleton className="h-64 w-full rounded-3xl" /> : enrolledLessons.length > 0 ? <LessonGrid list={enrolledLessons} /> : (
+            <div className="text-center py-20 bg-white rounded-[2rem] kid-card-shadow">
+              <Compass className="w-12 h-12 text-primary/10 mx-auto mb-4" />
+              <p className="font-black text-slate-400 uppercase tracking-widest italic">No finished courses yet!</p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <BottomNav />
     </main>

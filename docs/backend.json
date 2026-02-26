@@ -4,14 +4,13 @@
     "UserProfile": {
       "title": "UserProfile",
       "type": "object",
-      "description": "Student profile tracking progress, star rewards, and social status.",
+      "description": "Student profile tracking progress, star rewards, and class level.",
       "properties": {
         "displayName": { "type": "string" },
         "totalStars": { "type": "number" },
         "badges": { "type": "array", "items": { "type": "string" } },
         "role": { "type": "string", "enum": ["student", "admin"] },
-        "age": { "type": "number" },
-        "preferences": { "type": "array", "items": { "type": "string" } },
+        "studentClass": { "type": "string", "description": "e.g., JSS 1, SSS 3, Primary 4" },
         "onboardingCompleted": { "type": "boolean" },
         "photoURL": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
@@ -21,46 +20,47 @@
     "Lesson": {
       "title": "Lesson",
       "type": "object",
-      "description": "Educational lesson content split into interactive steps.",
+      "description": "Interactive educational content with polls and steps.",
       "properties": {
         "title": { "type": "string" },
         "category": { "type": "string" },
+        "targetClass": { "type": "string" },
         "description": { "type": "string" },
-        "steps": { "type": "array", "items": { "type": "string" } },
         "imageUrl": { "type": "string" },
-        "ageRange": { "type": "string" },
+        "steps": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["text", "image", "poll"] },
+              "content": { "type": "string" },
+              "imageUrl": { "type": "string" },
+              "poll": {
+                "type": "object",
+                "properties": {
+                  "question": { "type": "string" },
+                  "options": { "type": "array", "items": { "type": "string" } },
+                  "correctAnswer": { "type": "string" },
+                  "explanation": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["title", "steps", "category"]
+      "required": ["title", "category", "steps"]
     },
-    "Post": {
-      "title": "Post",
+    "Submission": {
+      "title": "Submission",
       "type": "object",
-      "description": "Social post shared by students.",
+      "description": "Record of a student completing a lesson or task.",
       "properties": {
         "userId": { "type": "string" },
         "userName": { "type": "string" },
-        "userPhoto": { "type": "string" },
-        "content": { "type": "string" },
-        "imageUrl": { "type": "string" },
-        "likes": { "type": "array", "items": { "type": "string" } },
-        "commentCount": { "type": "number" },
-        "isGuruResponse": { "type": "boolean" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      }
-    },
-    "Message": {
-      "title": "Message",
-      "type": "object",
-      "description": "Private message between students with media support.",
-      "properties": {
-        "participants": { "type": "array", "items": { "type": "string" } },
-        "senderId": { "type": "string" },
-        "receiverId": { "type": "string" },
-        "text": { "type": "string" },
-        "mediaUrl": { "type": "string" },
-        "expiresAt": { "type": "string", "format": "date-time", "description": "Date when media should be hidden." },
-        "read": { "type": "boolean" },
+        "taskTitle": { "type": "string" },
+        "points": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
         "timestamp": { "type": "string", "format": "date-time" }
       }
     }
@@ -77,13 +77,9 @@
       "schema": { "$ref": "#/backend/entities/Lesson" },
       "description": "Lessons curriculum."
     },
-    "/posts/{postId}": {
-      "schema": { "$ref": "#/backend/entities/Post" },
-      "description": "Social feed posts."
-    },
-    "/messages/{messageId}": {
-      "schema": { "$ref": "#/backend/entities/Message" },
-      "description": "Direct messages."
+    "/submissions/{submissionId}": {
+      "schema": { "$ref": "#/backend/entities/Submission" },
+      "description": "Work submissions."
     }
   }
 }

@@ -2,19 +2,22 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Sparkles, Loader2, Plus, Trash2, ClipboardList, BookOpen } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Sparkles, Loader2, Plus, Trash2, BookOpen, BrainCircuit } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, doc, addDoc, updateDoc, arrayUnion, increment, query, orderBy, serverTimestamp, deleteDoc } from "firebase/firestore";
-import { generateBulkContent } from "@/ai/flows/content-generator";
+import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
+import { collection, doc, addDoc, serverTimestamp } from "firebase/firestore";
+import { generateDeepLesson } from "@/ai/flows/content-generator";
+
+const SUBJECTS = ["Mathematics", "English", "Science", "Social Studies", "ICT", "Physics", "Chemistry", "Biology", "Economics"];
+const CLASSES = ["Primary 1-6", "JSS 1-3", "SSS 1-3"];
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -22,26 +25,17 @@ export default function AdminPage() {
   const db = useFirestore();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [idea, setIdea] = useState("");
-  const [manualType, setManualType] = useState<'lesson' | 'task'>('lesson');
   
-  const [manualLesson, setManualLesson] = useState({
+  const [lessonForm, setLessonForm] = useState({
     title: "",
-    category: "",
-    ageRange: "",
+    subject: "",
+    targetClass: "",
+    idea: "",
     imageUrl: "",
-    steps: [""]
+    steps: [] as any[]
   });
 
-  const [manualTask, setManualTask] = useState({
-    title: "",
-    points: 50,
-    type: 'daily'
-  });
-
-  const userProfileRef = useMemoFirebase(() => {
-    return user ? doc(db, 'users', user.uid) : null;
-  }, [db, user]);
+  const userProfileRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
   const { data: profile } = useDoc<any>(userProfileRef);
 
   const isAdmin = user?.email === 'goddikrayz@gmail.com' || profile?.role === 'admin';
@@ -51,29 +45,25 @@ export default function AdminPage() {
     if (!isUserLoading && user && profile && !isAdmin) router.push('/');
   }, [user, isUserLoading, router, profile, isAdmin]);
 
-  const submissionsQuery = useMemoFirebase(() => {
-    if (!user || !isAdmin) return null;
-    return query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
-  }, [db, user, isAdmin]);
-  const { data: submissions } = useCollection<any>(submissionsQuery);
-
-  const handleAutoGenerate = async (type: 'lessons' | 'tasks') => {
+  const handleAiMagic = async () => {
+    if (!lessonForm.title || !lessonForm.subject || !lessonForm.targetClass) {
+      toast({ title: "Missing Data", description: "Fill Title, Subject and Class first!" });
+      return;
+    }
     setLoading(true);
-    toast({ title: "Guru AI Waking Up...", description: `Creating ${type} for "${idea || 'General Knowledge'}"` });
+    toast({ title: "Professor Sky is Thinking...", description: "Building a world-class scheme of work..." });
     try {
-      const result = await generateBulkContent({ type, count: 5, idea });
-      const items = type === 'lessons' ? result.lessons : result.tasks;
-      if (items) {
-        for (const item of items) {
-          const finalItem = type === 'lessons' ? { 
-            ...item, 
-            steps: [item.content.substring(0, 500), item.content.substring(500, 1000), item.content.substring(1000)],
-            createdAt: serverTimestamp() 
-          } : { ...item, createdAt: serverTimestamp() };
-          await addDoc(collection(db, type), finalItem);
-        }
-        toast({ title: "Academy Updated!" });
-      }
+      const result = await generateDeepLesson({
+        title: lessonForm.title,
+        subject: lessonForm.subject,
+        targetClass: lessonForm.targetClass,
+        idea: lessonForm.idea
+      });
+      setLessonForm(prev => ({
+        ...prev,
+        ...result
+      }));
+      toast({ title: "AI Generation Complete!", description: "Review the steps below then click Publish." });
     } catch (e) {
       toast({ title: "AI Error", variant: "destructive" });
     } finally {
@@ -81,37 +71,19 @@ export default function AdminPage() {
     }
   };
 
-  const handleManualAddLesson = async () => {
-    if (!manualLesson.title || !manualLesson.category) return;
+  const handlePublish = async () => {
+    if (lessonForm.steps.length === 0) return;
     setLoading(true);
     try {
-      await addDoc(collection(db, "lessons"), { ...manualLesson, createdAt: serverTimestamp() });
-      toast({ title: "Lesson Published!" });
-      setManualLesson({ title: "", category: "", ageRange: "", imageUrl: "", steps: [""] });
-    } finally { setLoading(false); }
-  };
-
-  const handleManualAddTask = async () => {
-    if (!manualTask.title) return;
-    setLoading(true);
-    try {
-      await addDoc(collection(db, "tasks"), { ...manualTask, createdAt: serverTimestamp() });
-      toast({ title: "Task Published!" });
-      setManualTask({ title: "", points: 50, type: 'daily' });
-    } finally { setLoading(false); }
-  };
-
-  const handleApprove = (submission: any) => {
-    updateDoc(doc(db, 'submissions', submission.id), { status: 'approved' })
-      .then(() => {
-        if (submission.taskTitle.startsWith('Completed Lesson:')) {
-          const badge = submission.taskTitle.replace('Completed Lesson: ', '');
-          updateDoc(doc(db, 'users', submission.userId), { badges: arrayUnion(badge) });
-        } else {
-          updateDoc(doc(db, 'users', submission.userId), { totalStars: increment(submission.points || 0) });
-        }
-        toast({ title: "Approved!" });
+      await addDoc(collection(db, "lessons"), {
+        ...lessonForm,
+        createdAt: serverTimestamp()
       });
+      toast({ title: "Academy Updated!", description: "Lesson is live for students." });
+      setLessonForm({ title: "", subject: "", targetClass: "", idea: "", imageUrl: "", steps: [] });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (isUserLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
@@ -123,95 +95,66 @@ export default function AdminPage() {
         <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter">Command Center</h1>
       </header>
 
-      <Tabs defaultValue="manual">
-        <TabsList className="grid w-full grid-cols-3 mb-8 bg-white p-1 rounded-2xl kid-card-shadow h-14">
-          <TabsTrigger value="manual" className="rounded-xl font-bold">Manual</TabsTrigger>
-          <TabsTrigger value="ai" className="rounded-xl font-bold">Guru AI</TabsTrigger>
-          <TabsTrigger value="marking" className="rounded-xl font-bold">Inbox</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="manual">
-          <div className="flex gap-2 mb-6">
-             <Button variant={manualType === 'lesson' ? 'default' : 'outline'} onClick={() => setManualType('lesson')} className="rounded-xl font-bold flex-1 h-12">
-                <BookOpen className="w-4 h-4 mr-2" /> Lesson
-             </Button>
-             <Button variant={manualType === 'task' ? 'default' : 'outline'} onClick={() => setManualType('task')} className="rounded-xl font-bold flex-1 h-12">
-                <ClipboardList className="w-4 h-4 mr-2" /> Task
-             </Button>
+      <Card className="border-none kid-card-shadow bg-white p-8 rounded-[2.5rem] space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <Label className="font-bold">Lesson Title</Label>
+            <Input value={lessonForm.title} onChange={e => setLessonForm(p => ({...p, title: e.target.value}))} placeholder="e.g. Introduction to HTML" className="rounded-xl h-12" />
           </div>
+          <div className="space-y-2">
+            <Label className="font-bold">Subject</Label>
+            <Select onValueChange={v => setLessonForm(p => ({...p, subject: v}))} value={lessonForm.subject}>
+              <SelectTrigger className="rounded-xl h-12"><SelectValue placeholder="Subject" /></SelectTrigger>
+              <SelectContent>
+                {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="font-bold">Target Class</Label>
+            <Select onValueChange={v => setLessonForm(p => ({...p, targetClass: v}))} value={lessonForm.targetClass}>
+              <SelectTrigger className="rounded-xl h-12"><SelectValue placeholder="Class" /></SelectTrigger>
+              <SelectContent>
+                {CLASSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-          {manualType === 'lesson' ? (
-            <Card className="border-none kid-card-shadow bg-white p-8 rounded-3xl space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="font-bold">Title</Label>
-                  <Input value={manualLesson.title} onChange={e => setManualLesson(p => ({...p, title: e.target.value}))} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-bold">Category</Label>
-                  <Input value={manualLesson.category} onChange={e => setManualLesson(p => ({...p, category: e.target.value}))} />
-                </div>
-              </div>
-              <div className="space-y-4">
-                {manualLesson.steps.map((step, i) => (
-                  <Textarea key={i} placeholder={`Page ${i+1}`} value={step} onChange={e => {
-                    const s = [...manualLesson.steps]; s[i] = e.target.value; setManualLesson(p => ({...p, steps: s}));
-                  }} className="rounded-xl min-h-32"/>
-                ))}
-                <Button onClick={() => setManualLesson(p => ({...p, steps: [...p.steps, ""]}))} variant="outline" className="w-full rounded-xl">+ Add Page</Button>
-              </div>
-              <Button onClick={handleManualAddLesson} disabled={loading} className="w-full bg-primary h-14 rounded-2xl font-bold text-lg">Publish Lesson</Button>
-            </Card>
-          ) : (
-            <Card className="border-none kid-card-shadow bg-white p-8 rounded-3xl space-y-6">
-               <div className="space-y-2">
-                  <Label className="font-bold">Task Description</Label>
-                  <Input value={manualTask.title} onChange={e => setManualTask(p => ({...p, title: e.target.value}))} />
-               </div>
-               <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                     <Label className="font-bold">Points</Label>
-                     <Input type="number" value={manualTask.points} onChange={e => setManualTask(p => ({...p, points: parseInt(e.target.value)}))} />
-                  </div>
-                  <div className="space-y-2">
-                     <Label className="font-bold">Type</Label>
-                     <select className="w-full h-10 border rounded-xl px-3 font-bold text-sm" value={manualTask.type} onChange={e => setManualTask(p => ({...p, type: e.target.value as any}))}>
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                     </select>
-                  </div>
-               </div>
-               <Button onClick={handleManualAddTask} disabled={loading} className="w-full bg-secondary h-14 rounded-2xl font-bold text-lg">Publish Task</Button>
-            </Card>
-          )}
-        </TabsContent>
+        <div className="p-6 bg-primary/5 rounded-3xl border-2 border-dashed border-primary/20 text-center relative">
+          <BrainCircuit className="w-10 h-10 text-primary mx-auto mb-2" />
+          <p className="text-sm font-bold text-primary mb-4">Let AI build the entire academic content for you.</p>
+          <Button onClick={handleAiMagic} disabled={loading} className="bg-primary hover:bg-primary/90 h-14 px-8 rounded-2xl font-black text-lg">
+            {loading ? <Loader2 className="animate-spin" /> : <><Sparkles className="mr-2" /> MAGIC AI FILL</>}
+          </Button>
+        </div>
 
-        <TabsContent value="ai">
-          <Card className="border-none kid-card-shadow bg-white p-8 rounded-3xl text-center">
-            <Sparkles className="w-12 h-12 text-primary mx-auto mb-4 animate-float" />
-            <Input placeholder="Enter a topic (e.g. Space Robots)..." className="h-14 rounded-2xl mb-6 text-center italic font-bold" value={idea} onChange={e => setIdea(e.target.value)}/>
-            <div className="grid grid-cols-2 gap-4">
-              <Button onClick={() => handleAutoGenerate('lessons')} disabled={loading} className="h-14 bg-primary rounded-2xl font-bold">AI Lessons</Button>
-              <Button onClick={() => handleAutoGenerate('tasks')} disabled={loading} variant="outline" className="h-14 rounded-2xl font-bold">AI Tasks</Button>
+        {lessonForm.steps.length > 0 && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-black text-primary uppercase italic">Lesson Steps Preview</h3>
+            <div className="space-y-4">
+              {lessonForm.steps.map((step, i) => (
+                <div key={i} className="p-6 bg-slate-50 rounded-2xl border border-slate-100 relative group">
+                  <div className="absolute top-4 right-4 text-[10px] font-black text-slate-300 uppercase">Step {i+1} - {step.type}</div>
+                  <p className="text-sm font-medium text-slate-700 leading-relaxed mb-4">{step.content}</p>
+                  {step.imageUrl && <div className="text-[9px] font-bold text-primary">Image: {step.imageUrl}</div>}
+                  {step.poll && (
+                    <div className="mt-4 p-4 bg-white rounded-xl border border-slate-200">
+                      <p className="text-xs font-black text-secondary mb-2 italic">POLL: {step.poll.question}</p>
+                      <div className="flex gap-2">
+                        {step.poll.options.map((opt: string) => <div key={opt} className="px-3 py-1 bg-slate-50 text-[10px] font-bold rounded-lg border">{opt}</div>)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="marking" className="space-y-4">
-          {submissions?.filter(s => s.status === 'pending').map((sub) => (
-            <Card key={sub.id} className="border-none kid-card-shadow bg-white rounded-3xl p-6 flex items-center justify-between">
-              <div>
-                <h4 className="font-black text-primary italic">{sub.userName}</h4>
-                <p className="text-xs font-bold text-slate-400">{sub.taskTitle}</p>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={() => handleApprove(sub)} className="bg-green-500 rounded-xl h-10 font-bold">Approve</Button>
-                <Button variant="outline" className="text-red-500 rounded-xl h-10 border-red-100" onClick={() => deleteDoc(doc(db, "submissions", sub.id))}>Reject</Button>
-              </div>
-            </Card>
-          ))}
-        </TabsContent>
-      </Tabs>
+            <Button onClick={handlePublish} disabled={loading} className="w-full h-16 bg-secondary text-white font-black text-xl rounded-[2rem] shadow-xl shadow-secondary/20">
+              PUBLISH ELITE LESSON
+            </Button>
+          </div>
+        )}
+      </Card>
     </main>
   );
 }
