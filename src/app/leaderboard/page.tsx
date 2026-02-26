@@ -24,7 +24,12 @@ export default function LeaderboardPage() {
   const [activeStatus, setActiveStatus] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!users || !db) return;
+    if (!users || !db || !user) return;
+    
+    // Only fetch activity status for admins to avoid permission errors when querying other users' submissions
+    const isAdmin = user.email === 'goddikrayz@gmail.com';
+    if (!isAdmin) return;
+
     const checkActiveStatus = async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -43,12 +48,14 @@ export default function LeaderboardPage() {
           const lessonCount = docs.filter(d => d.taskTitle.startsWith('Completed Lesson:')).length;
           const taskCount = docs.length - lessonCount;
           if (lessonCount >= 10 && taskCount >= 6) statusMap[u.id] = true;
-        } catch (e) {}
+        } catch (e) {
+          // Silent catch for permission errors on individual students
+        }
       }
       setActiveStatus(statusMap);
     };
     checkActiveStatus();
-  }, [users, db]);
+  }, [users, db, user]);
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24 px-6 pt-12 max-w-md mx-auto">

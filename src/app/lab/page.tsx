@@ -380,7 +380,7 @@ export default function LabPage() {
         .sort((a: any, b: any) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
       setActiveMessages(msgs);
 
-      // Scroll to bottom on every update
+      // Scroll to bottom
       setTimeout(() => {
         if (scrollRef.current) {
           scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
