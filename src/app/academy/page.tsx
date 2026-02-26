@@ -18,12 +18,23 @@ import { cn } from "@/lib/utils";
 
 const SUBJECTS = [
   { name: "Mathematics", icon: "https://picsum.photos/seed/math/400/300" },
-  { name: "English", icon: "https://picsum.photos/seed/english/400/300" },
-  { name: "Science", icon: "https://picsum.photos/seed/science/400/300" },
-  { name: "ICT", icon: "https://picsum.photos/seed/ict/400/300" },
-  { name: "Social Studies", icon: "https://picsum.photos/seed/social/400/300" },
+  { name: "Further Mathematics", icon: "https://picsum.photos/seed/math2/400/300" },
+  { name: "English Language", icon: "https://picsum.photos/seed/english/400/300" },
+  { name: "Literature-in-English", icon: "https://picsum.photos/seed/books/400/300" },
   { name: "Physics", icon: "https://picsum.photos/seed/physics/400/300" },
-  { name: "Chemistry", icon: "https://picsum.photos/seed/chemistry/400/300" }
+  { name: "Chemistry", icon: "https://picsum.photos/seed/chemistry/400/300" },
+  { name: "Biology", icon: "https://picsum.photos/seed/biology/400/300" },
+  { name: "Agricultural Science", icon: "https://picsum.photos/seed/farm/400/300" },
+  { name: "Economics", icon: "https://picsum.photos/seed/money/400/300" },
+  { name: "Geography", icon: "https://picsum.photos/seed/earth/400/300" },
+  { name: "Government", icon: "https://picsum.photos/seed/law/400/300" },
+  { name: "Civic Education", icon: "https://picsum.photos/seed/peace/400/300" },
+  { name: "Financial Accounting", icon: "https://picsum.photos/seed/account/400/300" },
+  { name: "Commerce", icon: "https://picsum.photos/seed/market/400/300" },
+  { name: "ICT / Data Processing", icon: "https://picsum.photos/seed/ict/400/300" },
+  { name: "Technical Drawing", icon: "https://picsum.photos/seed/draft/400/300" },
+  { name: "CRS / IRS", icon: "https://picsum.photos/seed/faith/400/300" },
+  { name: "Visual Arts", icon: "https://picsum.photos/seed/art/400/300" }
 ];
 
 export default function AcademyPage() {
@@ -88,7 +99,7 @@ export default function AcademyPage() {
                 )}
               </div>
               <CardContent className="p-5">
-                <h3 className="text-xl font-black mb-1 text-primary">{lesson.title}</h3>
+                <h3 className="text-xl font-black mb-1 text-primary leading-tight">{lesson.title}</h3>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 italic">Class: {lesson.targetClass || "Academy"}</p>
                 <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-medium italic">
                   {lesson.description || "Elite academic path for global thinkers."}
@@ -116,7 +127,7 @@ export default function AcademyPage() {
           <AppLogo />
           <div className="bg-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2">
              <GraduationCap className="w-4 h-4 text-primary" />
-             <span className="text-[10px] font-black text-primary uppercase">IQ +100</span>
+             <span className="text-[10px] font-black text-primary uppercase">Elite Level</span>
           </div>
         </div>
         <div className="relative mb-6">

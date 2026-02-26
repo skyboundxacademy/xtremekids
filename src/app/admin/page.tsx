@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Sparkles, Loader2, BrainCircuit, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2, BrainCircuit, CheckCircle2, AlertTriangle, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -15,9 +15,20 @@ import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, doc, addDoc, serverTimestamp } from "firebase/firestore";
 import { generateDeepLesson } from "@/ai/flows/content-generator";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
-const SUBJECTS = ["Mathematics", "English", "Science", "Social Studies", "ICT", "Physics", "Chemistry", "Biology", "Economics"];
-const CLASSES = ["Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6", "JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"];
+const SUBJECTS = [
+  "Mathematics", "Further Mathematics", "English Language", "Literature-in-English", 
+  "Physics", "Chemistry", "Biology", "Agricultural Science", "Economics", 
+  "Geography", "Government", "Civic Education", "Financial Accounting", 
+  "Commerce", "ICT / Data Processing", "Technical Drawing", "CRS / IRS", "Visual Arts"
+];
+
+const CLASSES = [
+  "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
+  "JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"
+];
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -62,7 +73,10 @@ export default function AdminPage() {
       });
       setLessonForm(prev => ({
         ...prev,
-        ...result
+        ...result,
+        title: prev.title, // Keep the user's title if they prefer
+        subject: prev.subject,
+        targetClass: prev.targetClass
       }));
       toast({ title: "Academic Path Ready", description: "Self-healing images and polls generated." });
     } catch (e) {
@@ -73,7 +87,10 @@ export default function AdminPage() {
   };
 
   const handlePublish = async () => {
-    if (lessonForm.steps.length === 0) return;
+    if (lessonForm.steps.length === 0) {
+      toast({ title: "No Steps", description: "Trigger the AI architect or add steps first." });
+      return;
+    }
     setLoading(true);
     try {
       await addDoc(collection(db, "lessons"), {
@@ -127,7 +144,7 @@ export default function AdminPage() {
           <BrainCircuit className="w-10 h-10 text-primary mx-auto mb-2" />
           <p className="text-xs font-bold text-primary mb-4 uppercase tracking-widest italic">Professor Sky will architect the entire scheme of work.</p>
           <Button onClick={handleAiMagic} disabled={loading} className="bg-primary hover:bg-primary/90 h-14 px-8 rounded-2xl font-black text-lg kid-card-shadow">
-            {loading ? <Loader2 className="animate-spin" /> : <><Sparkles className="mr-2" /> TRIGGER AI ARCHITECT</>}
+            {loading ? <Loader2 className="animate-spin" /> : <><Sparkles className="mr-2" /> TRIGGER MAGIC AI FILL</>}
           </Button>
         </div>
 
@@ -135,7 +152,7 @@ export default function AdminPage() {
           <div className="space-y-8 animate-in zoom-in-95 duration-500">
             <div className="flex items-center gap-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
                <div className="relative w-24 h-24 rounded-2xl overflow-hidden shrink-0">
-                  <Image src={lessonForm.imageUrl} alt="Card" fill className="object-cover" unoptimized />
+                  <Image src={lessonForm.imageUrl || `https://picsum.photos/seed/${lessonForm.title}/400/300`} alt="Card" fill className="object-cover" unoptimized />
                </div>
                <div>
                   <h3 className="font-black text-primary text-xl uppercase italic leading-tight">{lessonForm.title}</h3>
@@ -159,12 +176,12 @@ export default function AdminPage() {
                             <Image src={step.imageUrl} alt="step" fill className="object-cover" unoptimized />
                          </div>
                        )}
-                       <p className="text-xs font-medium text-slate-600 leading-relaxed">{step.content}</p>
+                       <p className="text-xs font-medium text-slate-700 leading-relaxed flex-1">{step.content}</p>
                     </div>
 
                     {step.poll && (
                       <div className="mt-4 p-4 bg-secondary/5 rounded-2xl border border-secondary/10">
-                         <p className="text-[10px] font-black text-secondary mb-2 uppercase italic">Interactive Knowledge Check</p>
+                         <p className="text-[10px] font-black text-secondary mb-2 uppercase italic">Knowledge Check</p>
                          <p className="text-xs font-bold mb-2">{step.poll.question}</p>
                          <div className="flex flex-wrap gap-2">
                             {step.poll.options.map((opt: string) => (

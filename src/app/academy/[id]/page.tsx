@@ -71,21 +71,24 @@ export default function LessonDetailPage() {
       setCurrentStep(prev => prev + 1);
       setSelectedOption(null);
       setAiFeedback(null);
-      // Scroll to top on next step
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   if (isLessonLoading || checkingCompletion) {
-    return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" /></div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white p-10 text-center">
+        <Loader2 className="animate-spin text-primary mb-4" />
+        <p className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Preparing Elite Academic Path...</p>
+      </div>
+    );
   }
 
-  // Safety guard for missing lesson or steps
   if (!lesson || !lesson.steps || !lesson.steps[currentStep]) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-4">
         <HelpCircle className="w-12 h-12 text-slate-200" />
-        <h2 className="font-black text-slate-400 uppercase tracking-widest italic">Preparing your academic path...</h2>
+        <h2 className="font-black text-slate-400 uppercase tracking-widest italic text-xs">This Academic Path is still being built by the Architect.</h2>
         <Button onClick={() => router.back()} variant="outline" className="rounded-full">Go Back</Button>
       </div>
     );
@@ -118,7 +121,7 @@ export default function LessonDetailPage() {
 
   return (
     <main className="min-h-screen bg-white max-w-md mx-auto relative pb-32">
-      <button onClick={() => router.back()} className="fixed top-6 left-6 z-50 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md shadow-lg flex items-center justify-center text-primary">
+      <button onClick={() => router.back()} className="fixed top-6 left-6 z-[70] w-10 h-10 rounded-full bg-white/80 backdrop-blur-md shadow-lg flex items-center justify-center text-primary">
         <ChevronLeft className="w-6 h-6" />
       </button>
 
@@ -132,21 +135,21 @@ export default function LessonDetailPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
            <h1 className="text-2xl font-black text-white leading-tight">{lesson.title}</h1>
-           <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-2">Elite Academic Path</span>
+           <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-2">Section {currentStep + 1}</span>
         </div>
       </div>
 
       <div className="px-8 pt-8">
         <div className="mb-10">
            <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-black text-primary uppercase tracking-widest italic">Section {currentStep + 1} / {lesson.steps.length}</span>
+            <span className="text-[10px] font-black text-primary uppercase tracking-widest italic">{lesson.subject} / Path {currentStep + 1}</span>
             <span className="text-[10px] font-black text-primary">{Math.round(progress)}%</span>
            </div>
            <Progress value={progress} className="h-2 rounded-full bg-primary/10" />
         </div>
 
         <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-          <div className="prose prose-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap mb-10">
+          <div className="prose prose-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap mb-10 text-base italic">
             {step.content}
           </div>
 
@@ -154,7 +157,7 @@ export default function LessonDetailPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-4 text-secondary">
                 <HelpCircle className="w-5 h-5" />
-                <h4 className="font-black text-lg italic tracking-tight uppercase">{step.poll?.question || "Quick Knowledge Check"}</h4>
+                <h4 className="font-black text-lg italic tracking-tight uppercase">{step.poll?.question || "Knowledge Check"}</h4>
               </div>
               <div className="grid gap-3">
                 {step.poll?.options?.map((opt: string) => (
@@ -196,7 +199,7 @@ export default function LessonDetailPage() {
           
           {currentStep < (lesson.steps?.length || 0) - 1 ? (
             <Button onClick={handleNext} className="flex-[2] rounded-2xl h-14 bg-primary font-black text-lg kid-card-shadow uppercase italic tracking-tighter">
-              Next Step <ArrowRight className="ml-2" />
+              Next Path <ArrowRight className="ml-2" />
             </Button>
           ) : (
             <div className="flex-[2]">
