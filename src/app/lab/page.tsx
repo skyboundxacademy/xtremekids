@@ -14,8 +14,8 @@ import Image from "next/image";
 import { explainConcept } from "@/ai/flows/concept-explainer";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Helper to highlight mentions and hashtags
 function HighlightText({ text }: { text: string }) {
   if (!text) return null;
   const parts = text.split(/(\s+)/);
@@ -34,7 +34,6 @@ function HighlightText({ text }: { text: string }) {
   );
 }
 
-// Sub-component for Comments to handle individual post logic
 function PostComments({ postId }: { postId: string }) {
   const db = useFirestore();
   const { user } = useUser();
@@ -43,11 +42,9 @@ function PostComments({ postId }: { postId: string }) {
   const [commentText, setCommentText] = useState("");
 
   useEffect(() => {
-    // Simplified query to avoid index errors, sorting in memory
     const q = query(collection(db, `posts/${postId}/comments`));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
-      // Sort by likesCount (desc) then timestamp (desc) in memory
       setComments(data.sort((a, b) => {
         if ((b.likesCount || 0) !== (a.likesCount || 0)) {
           return (b.likesCount || 0) - (a.likesCount || 0);
@@ -132,7 +129,6 @@ function PostComments({ postId }: { postId: string }) {
   );
 }
 
-// Sub-component for individual Post cards
 function PostCard({ post, allUsers }: { post: any, allUsers: any[] }) {
   const { user } = useUser();
   const db = useFirestore();
@@ -247,7 +243,6 @@ function PostCard({ post, allUsers }: { post: any, allUsers: any[] }) {
 export default function LabPage() {
   const { user } = useUser();
   const db = useFirestore();
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState("social");
   const [postContent, setPostContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
@@ -268,7 +263,6 @@ export default function LabPage() {
   const [activeMessages, setActiveMessages] = useState<any[]>([]);
   useEffect(() => {
     if (!user || !selectedUser) return;
-    // Simplified query to avoid missing composite index errors (array-contains + orderBy)
     const q = query(
       collection(db, "messages"),
       where("participants", "array-contains", user.uid)
@@ -280,7 +274,7 @@ export default function LabPage() {
         .sort((a: any, b: any) => {
            const timeA = a.timestamp?.seconds || 0;
            const timeB = b.timestamp?.seconds || 0;
-           return timeA - timeB; // Sort ascending (oldest first)
+           return timeA - timeB;
         });
       setActiveMessages(msgs);
     });
@@ -372,8 +366,20 @@ export default function LabPage() {
           </Card>
 
           <div className="space-y-4">
-            {isPostsLoading && <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary w-10 h-10" /></div>}
-            {posts?.map((post) => (
+            {isPostsLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="border-none kid-card-shadow bg-white rounded-[2.5rem] p-6 mb-8 h-64">
+                  <div className="flex items-center gap-3 mb-5">
+                    <Skeleton className="w-12 h-12 rounded-2xl" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-24 w-full rounded-2xl" />
+                </Card>
+              ))
+            ) : posts?.map((post) => (
               <PostCard key={post.id} post={post} allUsers={allUsers || []} />
             ))}
           </div>
@@ -428,12 +434,6 @@ export default function LabPage() {
                     </div>
                   </div>
                 ))}
-                {activeMessages.length === 0 && (
-                  <div className="h-full flex flex-col items-center justify-center opacity-30 text-center px-10">
-                    <MessageSquare className="w-12 h-12 mb-4" />
-                    <p className="font-bold italic">Start a safe conversation with {selectedUser.displayName}!</p>
-                  </div>
-                )}
               </div>
               <div className="p-5 bg-white border-t flex gap-3">
                 <Input 
