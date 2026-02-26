@@ -16,19 +16,14 @@ export interface Task {
   createdAt?: any;
 }
 
-export interface QuizQuestion {
-  question: string;
-  options: string[];
-  correctAnswer: number;
-}
-
 export interface Quiz {
   id: string;
   title: string;
-  questions: QuizQuestion[];
+  questions: any[];
 }
 
-// All hardcoded data removed to use real Firestore collections.
+// All hardcoded mock data has been deleted.
+// The app now relies exclusively on real Firestore data.
 export const mockLessons: Lesson[] = [];
 export const mockTasks: Task[] = [];
 export const mockQuizzes: Quiz[] = [];
