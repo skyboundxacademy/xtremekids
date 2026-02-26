@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, User, Sparkles, Loader2, Plus, Globe, Send, ArrowLeft, Search, Repeat2, Bookmark, CheckCircle2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit, increment } from "firebase/firestore";
 import Image from "next/image";
 import { explainConcept } from "@/ai/flows/concept-explainer";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 export default function LabPage() {
   const { user } = useUser();
@@ -82,49 +84,74 @@ export default function LabPage() {
       timestamp: serverTimestamp()
     };
 
-    await addDoc(collection(db, "posts"), postData);
-
-    if (postContent.toLowerCase().includes("@guru")) {
-      try {
-        const question = postContent.replace(/@guru/gi, "").trim();
-        const res = await explainConcept({ concept: question });
-        await addDoc(collection(db, "posts"), {
-          userId: "guru-ai",
-          userName: "Professor Sky",
-          userPhoto: "https://picsum.photos/seed/guru/200/200",
-          content: `@${user.displayName || 'Explorer'}, ${res.explanation}`,
-          likes: [],
-          isGuruResponse: true,
-          timestamp: serverTimestamp()
-        });
-      } catch (e) {
-        console.error("Guru was sleeping");
-      }
-    }
-
-    setPostContent("");
-    setIsPosting(false);
+    addDoc(collection(db, "posts"), postData)
+      .then(async (docRef) => {
+        if (postContent.toLowerCase().includes("@guru")) {
+          const question = postContent.replace(/@guru/gi, "").trim();
+          try {
+            const res = await explainConcept({ concept: question });
+            addDoc(collection(db, "posts"), {
+              userId: "guru-ai",
+              userName: "Professor Sky",
+              userPhoto: "https://picsum.photos/seed/guru/200/200",
+              content: `@${user.displayName || 'Explorer'}, ${res.explanation}`,
+              likes: [],
+              isGuruResponse: true,
+              timestamp: serverTimestamp()
+            }).catch(e => {
+               errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'posts', operation: 'create' }));
+            });
+          } catch (e) {
+            console.error("Guru was sleeping");
+          }
+        }
+      })
+      .catch(e => {
+         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'posts', operation: 'create' }));
+      })
+      .finally(() => {
+        setPostContent("");
+        setIsPosting(false);
+      });
   };
 
-  const toggleLike = async (post: any) => {
+  const toggleLike = (post: any) => {
     if (!user) return;
     const postRef = doc(db, "posts", post.id);
     const postLikes = Array.isArray(post.likes) ? post.likes : [];
     const isLiked = postLikes.includes(user.uid);
-    await updateDoc(postRef, {
+    
+    updateDoc(postRef, {
       likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
+    }).catch(e => {
+       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `posts/${post.id}`, operation: 'update' }));
     });
   };
 
-  const sendMessage = async () => {
+  const handleRepost = (post: any) => {
+    if (!user) return;
+    const postRef = doc(db, "posts", post.id);
+    updateDoc(postRef, {
+      reposts: increment(1)
+    }).catch(e => {
+       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `posts/${post.id}`, operation: 'update' }));
+    });
+  };
+
+  const sendMessage = () => {
     if (!user || !selectedUser || !messageText) return;
-    await addDoc(collection(db, "messages"), {
+    const msgData = {
       participants: [user.uid, selectedUser.id],
       senderId: user.uid,
       receiverId: selectedUser.id,
       text: messageText,
       timestamp: serverTimestamp()
-    });
+    };
+
+    addDoc(collection(db, "messages"), msgData)
+      .catch(e => {
+         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'messages', operation: 'create' }));
+      });
     setMessageText("");
   };
 
@@ -207,7 +234,6 @@ export default function LabPage() {
                           </span>
                         </div>
                       </div>
-                      <button className="text-slate-300 hover:text-slate-500"><Plus className="w-5 h-5" /></button>
                     </div>
 
                     <p className="text-[15px] font-medium text-slate-700 leading-relaxed mb-6 whitespace-pre-wrap">
@@ -225,7 +251,10 @@ export default function LabPage() {
                         <button className="flex items-center gap-2 text-slate-400 font-black text-sm hover:text-blue-500 transition-colors">
                           <MessageCircle className="w-5 h-5" /> {post.commentCount || 0}
                         </button>
-                        <button className="flex items-center gap-2 text-slate-400 font-black text-sm hover:text-green-500 transition-colors">
+                        <button 
+                          onClick={() => handleRepost(post)}
+                          className="flex items-center gap-2 text-slate-400 font-black text-sm hover:text-green-500 transition-colors"
+                        >
                           <Repeat2 className="w-5 h-5" /> {post.reposts || 0}
                         </button>
                       </div>
@@ -233,16 +262,6 @@ export default function LabPage() {
                         <Bookmark className="w-5 h-5" />
                       </button>
                     </div>
-
-                    {post.commentCount > 0 && (
-                       <div className="mt-4 pt-4 border-t border-slate-50 space-y-3">
-                          <div className="flex gap-2 items-start">
-                             <div className="w-6 h-6 rounded-lg bg-slate-100 shrink-0" />
-                             <p className="text-xs text-slate-600 font-medium">Amazing insight! I learned this in Class 4 too.</p>
-                          </div>
-                          <button className="text-[10px] font-black text-primary uppercase tracking-wider pl-8">See 2 more comments</button>
-                       </div>
-                    )}
                   </CardContent>
                 </Card>
               );
