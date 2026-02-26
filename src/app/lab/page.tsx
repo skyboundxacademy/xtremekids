@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, User, Sparkles, Loader2, Plus, Globe, Send, ArrowLeft, Search, Repeat2, Bookmark, CheckCircle2, ShieldCheck, MessageSquare } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit, increment } from "firebase/firestore";
 import Image from "next/image";
@@ -51,9 +51,11 @@ export default function LabPage() {
   }, [db, user, selectedUser]);
   const { data: rawMessages } = useCollection<any>(chatQuery);
 
-  const activeMessages = rawMessages?.filter(m => 
-    m.participants.includes(user?.uid) && m.participants.includes(selectedUser?.id)
-  ) || [];
+  const activeMessages = useMemo(() => {
+    return (rawMessages || []).filter(m => 
+      m.participants.includes(user?.uid) && m.participants.includes(selectedUser?.id)
+    );
+  }, [rawMessages, user, selectedUser]);
 
   const getUserTitle = (stars: number = 0) => {
     if (stars > 3000) return "Skybound Legend";
@@ -99,7 +101,7 @@ export default function LabPage() {
               userId: "guru-ai",
               userName: "Professor Sky",
               userPhoto: "https://picsum.photos/seed/guru/200/200",
-              content: res.explanation,
+              content: postContent, // Original content is preserved
               isRepost: true,
               repostCaption: res.explanation,
               originalAuthor: user.displayName || 'Explorer',
@@ -289,23 +291,25 @@ export default function LabPage() {
                     </div>
 
                     <div className="space-y-4">
-                      <p className="text-[15px] font-medium text-slate-700 leading-relaxed whitespace-pre-wrap">
-                        {post.content}
-                      </p>
-
-                      {post.isRepost && (
-                        <div className="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 border-dashed">
+                      {post.isRepost && post.repostCaption && (
+                        <p className="text-[15px] font-bold text-primary leading-relaxed whitespace-pre-wrap">
+                          {post.repostCaption}
+                        </p>
+                      )}
+                      
+                      <div className={post.isRepost ? "p-4 rounded-2xl bg-slate-50 border border-slate-100 border-dashed" : ""}>
+                        {post.isRepost && (
                           <div className="flex items-center gap-2 mb-2">
                              <div className="w-6 h-6 rounded-lg bg-primary/10 relative overflow-hidden">
-                                <Image src={`https://picsum.photos/seed/${post.originalAuthor}/50/50`} alt="orig" fill unoptimized />
+                                <Image src={`https://picsum.photos/seed/${post.originalAuthor || post.userId}/50/50`} alt="orig" fill unoptimized />
                              </div>
-                             <span className="text-xs font-bold text-slate-500">{post.originalAuthor}</span>
+                             <span className="text-xs font-bold text-slate-500">{post.originalAuthor || "Original Author"}</span>
                           </div>
-                          <p className="text-xs font-medium text-slate-600 italic">
-                             {post.originalContent}
-                          </p>
-                        </div>
-                      )}
+                        )}
+                        <p className={`text-[15px] font-medium text-slate-700 leading-relaxed whitespace-pre-wrap ${post.isRepost ? 'italic text-sm' : ''}`}>
+                          {post.content}
+                        </p>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-6">
