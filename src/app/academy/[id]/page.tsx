@@ -79,7 +79,7 @@ export default function LessonDetailPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white p-10 text-center">
         <Loader2 className="animate-spin text-primary mb-4" />
-        <p className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Preparing Elite Academic Path...</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Preparing Elite Academic Path...</p>
       </div>
     );
   }

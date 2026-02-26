@@ -41,10 +41,16 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    if (!isUserLoading && user && profile && profile.onboardingCompleted === false) {
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !isUserLoading && !user) {
+      router.push('/login');
+    }
+    if (mounted && !isUserLoading && user && profile && profile.onboardingCompleted === false) {
       router.push("/onboarding");
     }
-  }, [user, isUserLoading, profile, router]);
+  }, [user, isUserLoading, profile, router, mounted]);
 
   useEffect(() => {
     if (!topLessons || topLessons.length <= 1) return;
@@ -54,13 +60,8 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [topLessons]);
 
-  if (!mounted || isUserLoading) {
+  if (!mounted || isUserLoading || (!user && mounted)) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
-  }
-
-  if (!user && !isUserLoading) {
-    router.push('/login');
-    return null;
   }
 
   return (
@@ -72,7 +73,10 @@ export default function Home() {
             {isProfileLoading ? (
               <Skeleton className="h-4 w-24 mt-1" />
             ) : (
-              `Explorer: ${profile?.displayName || "Explorer"}`
+              <div className="flex flex-col">
+                <span>Explorer: {profile?.displayName || "Explorer"}</span>
+                <span className="text-[9px] text-primary/50">{profile?.studentClass || "Academy"}</span>
+              </div>
             )}
           </div>
         </div>
