@@ -1,3 +1,4 @@
+
 "use client"
 
 import { BottomNav } from "@/components/BottomNav";
@@ -10,6 +11,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy, where, getDocs } from "firebase/firestore";
+import { AppLogo } from "@/components/AppLogo";
 
 export default function AcademyPage() {
   const [search, setSearch] = useState("");
@@ -57,9 +59,10 @@ export default function AcademyPage() {
   return (
     <main className="min-h-screen pb-24 px-6 pt-12 max-w-md mx-auto">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-primary mb-2 flex items-center gap-2">
-          Academy <Cloud className="text-primary/20 fill-primary/5" />
-        </h1>
+        <div className="flex items-center justify-between mb-4">
+          <AppLogo />
+          <Cloud className="text-primary/20 fill-primary/5 animate-float" />
+        </div>
         <p className="text-muted-foreground font-medium mb-6">Learn something amazing today!</p>
         
         <div className="relative">

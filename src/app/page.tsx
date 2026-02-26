@@ -4,15 +4,15 @@
 import { BottomNav } from "@/components/BottomNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Cloud, Star, Sparkles, Trophy, Loader2, ArrowRight, BookOpen, ChevronRight, ClipboardList } from "lucide-react";
+import { Star, Sparkles, Trophy, Loader2, ArrowRight, BookOpen, ChevronRight, ClipboardList } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, limit, orderBy } from "firebase/firestore";
-import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AppLogo } from "@/components/AppLogo";
 
 export default function Home() {
   const router = useRouter();
@@ -67,19 +67,16 @@ export default function Home() {
     <main className="min-h-screen pb-32 px-6 pt-12 max-w-md mx-auto">
       <header className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-black text-primary leading-tight">
-            Skybound <Sparkles className="inline text-secondary animate-pulse" />
-          </h1>
-          <p className="text-muted-foreground font-bold text-xs uppercase tracking-widest">
-            {isProfileLoading ? <Skeleton className="h-4 w-24 mt-1" /> : `Hi, ${profile?.displayName || "Explorer"}`}
+          <AppLogo className="mb-2" />
+          <p className="text-muted-foreground font-bold text-xs uppercase tracking-widest ml-1">
+            {isProfileLoading ? <Skeleton className="h-4 w-24 mt-1" /> : `Explorer: ${profile?.displayName || "Explorer"}`}
           </p>
         </div>
-        <Link href="/profile" className="w-12 h-12 rounded-2xl bg-primary/10 border-2 border-primary/20 overflow-hidden relative">
+        <Link href="/profile" className="w-12 h-12 rounded-2xl bg-primary/10 border-2 border-primary/20 overflow-hidden relative shadow-sm hover:scale-105 transition-transform">
           <Image src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} alt="Avatar" fill className="object-cover" unoptimized />
         </Link>
       </header>
 
-      {/* Featured Lesson Skeleton Loading */}
       <section className="mb-8">
         <h2 className="text-xs font-bold text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
           Featured Course <Sparkles className="w-3 h-3 text-secondary" />
@@ -110,7 +107,6 @@ export default function Home() {
         )}
       </section>
 
-      {/* Stats Skeleton Loading */}
       <section className="grid grid-cols-2 gap-4 mb-8">
         <Card className="bg-primary/5 border-none kid-card-shadow rounded-3xl p-6 text-center">
           <div className="bg-primary/20 w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center">
@@ -128,9 +124,8 @@ export default function Home() {
         </Card>
       </section>
 
-      {/* Leaderboard Skeleton Loading */}
       <section className="mb-8">
-        <h2 className="text-xl font-black text-primary mb-4 flex items-center gap-2">
+        <h2 className="text-xl font-black text-primary mb-4 flex items-center gap-2 italic tracking-tighter uppercase">
           Star Hall <Trophy className="text-yellow-500 w-5 h-5" />
         </h2>
         <Card className="border-none kid-card-shadow bg-white rounded-[2rem] overflow-hidden">

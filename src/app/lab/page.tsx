@@ -3,21 +3,22 @@
 
 import { BottomNav } from "@/components/BottomNav";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Heart, User, Sparkles, Loader2, Plus, Globe, Send, ArrowLeft, Search, Repeat2, MessageSquare, CheckCircle2, ShieldCheck, ChevronDown, ChevronUp, Bell, Reply } from "lucide-react";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { Heart, User, Globe, Send, ArrowLeft, Search, Repeat2, MessageSquare, CheckCircle2, ShieldCheck, ChevronDown, ChevronUp, Bell, Reply, Loader2, Plus } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit, increment, onSnapshot, writeBatch, getDocs } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit, increment, onSnapshot, writeBatch } from "firebase/firestore";
 import Image from "next/image";
 import { explainConcept } from "@/ai/flows/concept-explainer";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AppLogo } from "@/components/AppLogo";
 
 const GURU_ID = "guru-ai";
-const GURU_AVATAR = "https://picsum.photos/seed/labubu-purple/400/400"; // Consistent Guru Avatar
+const GURU_AVATAR = "https://picsum.photos/seed/labubu-purple/400/400"; 
 
 function HighlightText({ text }: { text: string }) {
   if (!text) return null;
@@ -50,7 +51,6 @@ function PostComments({ postId }: { postId: string }) {
     const q = query(collection(db, `posts/${postId}/comments`));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
-      // Clientside sorting to avoid index requirements for now
       setComments(data.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0)));
     });
     return () => unsubscribe();
@@ -317,7 +317,6 @@ function InboxUserCard({ u, currentUser, onClick }: { u: any, currentUser: any, 
       const sorted = allMsgs.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
       if (sorted.length > 0) setLastMsg((sorted[0] as any).text);
 
-      // Notifications: only show if I am the receiver and it's unread
       const unread = allMsgs.filter((m: any) => m.receiverId === currentUser.uid && !m.read);
       setUnreadCount(unread.length);
     });
@@ -381,14 +380,13 @@ export default function LabPage() {
         .sort((a: any, b: any) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
       setActiveMessages(msgs);
 
-      // Auto-scroll to bottom
+      // Scroll to bottom on every update
       setTimeout(() => {
         if (scrollRef.current) {
           scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-      }, 100);
+      }, 50);
 
-      // Mark as read ONLY if I am the receiver
       const unreadDocs = snapshot.docs.filter(d => {
         const data = d.data();
         return data.participants.includes(selectedUser.id) && data.receiverId === user.uid && !data.read;
@@ -469,7 +467,7 @@ export default function LabPage() {
       senderId: user.uid,
       receiverId: selectedUser.id,
       text: text,
-      read: selectedUser.id === GURU_ID, // Guru reads instantly
+      read: selectedUser.id === GURU_ID,
       timestamp: serverTimestamp()
     });
 
@@ -500,9 +498,7 @@ export default function LabPage() {
   return (
     <main className="min-h-screen pb-32 px-4 pt-12 max-w-md mx-auto bg-slate-50/50">
       <header className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-black text-primary flex items-center gap-2 uppercase tracking-tighter italic">
-          The Lab <Globe className="text-secondary animate-float" />
-        </h1>
+        <AppLogo showText={true} />
         {activeTab === 'messages' && <div className="bg-primary/10 p-2 rounded-xl"><Bell className="w-5 h-5 text-primary" /></div>}
       </header>
 
