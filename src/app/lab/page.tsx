@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Heart, User, Globe, Send, ArrowLeft, Search, Repeat2, MessageSquare, CheckCircle2, ShieldCheck, ChevronDown, ChevronUp, Bell, Reply, Loader2, Plus } from "lucide-react";
+import { Heart, User, Send, ArrowLeft, Search, Repeat2, MessageSquare, CheckCircle2, ShieldCheck, ChevronDown, ChevronUp, Bell, Reply, Loader2, Plus, Mic } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit, increment, onSnapshot, writeBatch } from "firebase/firestore";
@@ -496,73 +496,112 @@ export default function LabPage() {
   };
 
   return (
-    <main className="min-h-screen pb-32 px-4 pt-12 max-w-md mx-auto bg-slate-50/50">
-      <header className="mb-8 flex items-center justify-between">
-        <AppLogo showText={true} />
-        {activeTab === 'messages' && <div className="bg-primary/10 p-2 rounded-xl"><Bell className="w-5 h-5 text-primary" /></div>}
-      </header>
+    <main className="min-h-screen pb-32 max-w-md mx-auto bg-slate-50/50 relative">
+      {!selectedUser && (
+        <div className="px-4 pt-12">
+          <header className="mb-8 flex items-center justify-between">
+            <AppLogo showText={true} />
+            {activeTab === 'messages' && <div className="bg-primary/10 p-2 rounded-xl"><Bell className="w-5 h-5 text-primary" /></div>}
+          </header>
 
-      <Tabs defaultValue="social" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 mb-8 bg-white p-1 rounded-3xl kid-card-shadow h-16">
-          <TabsTrigger value="social" className="rounded-2xl font-black uppercase tracking-tighter">Feed</TabsTrigger>
-          <TabsTrigger value="messages" className="rounded-2xl font-black uppercase tracking-tighter relative">
-            Inbox
-            {allUsers && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white" />}
-          </TabsTrigger>
-        </TabsList>
+          <Tabs defaultValue="social" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2 mb-8 bg-white p-1 rounded-3xl kid-card-shadow h-16">
+              <TabsTrigger value="social" className="rounded-2xl font-black uppercase tracking-tighter">Feed</TabsTrigger>
+              <TabsTrigger value="messages" className="rounded-2xl font-black uppercase tracking-tighter relative">
+                Inbox
+                {allUsers && <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white" />}
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="social">
-          <Card className="border-none kid-card-shadow bg-white rounded-[2.5rem] mb-10 p-6">
-            <div className="flex gap-4">
-               <div className="w-12 h-12 rounded-2xl bg-primary/10 relative overflow-hidden shrink-0 border border-primary/10">
-                  <Image src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} alt="Me" fill className="object-cover" unoptimized />
-               </div>
-               <textarea placeholder="Ask @guru or share #STEM ideas..." className="w-full p-2 text-base font-medium focus:outline-none bg-transparent resize-none min-h-[100px] italic" value={postContent} onChange={(e) => setPostContent(e.target.value)}/>
-            </div>
-            <Button onClick={handlePost} disabled={isPosting || !postContent} className="rounded-2xl bg-primary font-bold h-14 w-full text-lg mt-4 shadow-lg shadow-primary/20">
-              {isPosting ? <Loader2 className="animate-spin" /> : <><Plus className="w-5 h-5 mr-2" /> Share Insight</>}
-            </Button>
-          </Card>
-          <div className="space-y-4">
-            {isPostsLoading ? Array.from({ length: 3 }).map((_, i) => <Card key={i} className="border-none kid-card-shadow bg-white rounded-[2.5rem] p-6 mb-8 h-64"><div className="flex items-center gap-3 mb-5"><Skeleton className="w-12 h-12 rounded-2xl" /><div className="space-y-2"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-16" /></div></div><Skeleton className="h-24 w-full rounded-2xl" /></Card>) : posts?.map((post) => <PostCard key={post.id} post={post} allUsers={allUsers || []} />)}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="messages">
-          {!selectedUser ? (
-            <div className="space-y-6 animate-in fade-in duration-500">
-              <div className="relative mb-8">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input className="pl-12 rounded-[2rem] border-none bg-white kid-card-shadow h-16 text-base font-medium italic" placeholder="Find an Explorer or Guru..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
-              </div>
-              <div className="grid gap-4">
-                {filteredUsers.map(u => <InboxUserCard key={u.id} u={u} currentUser={user} onClick={() => setSelectedUser(u)} />)}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-[3rem] kid-card-shadow flex flex-col h-[70vh] animate-in slide-in-from-right-10 overflow-hidden border-4 border-white relative">
-              <header className="p-6 border-b flex items-center justify-between bg-primary text-white shadow-md">
-                <div className="flex items-center gap-4">
-                   <button onClick={() => setSelectedUser(null)} className="hover:scale-110 transition-transform"><ArrowLeft className="w-6 h-6" /></button>
-                   <div className="w-12 h-12 rounded-2xl bg-white/20 relative overflow-hidden border border-white/30">
-                      <Image src={selectedUser.photoURL || `https://picsum.photos/seed/${selectedUser.id}/100/100`} alt="p" fill className="object-cover" unoptimized />
+            <TabsContent value="social">
+              <Card className="border-none kid-card-shadow bg-white rounded-[2.5rem] mb-10 p-6">
+                <div className="flex gap-4">
+                   <div className="w-12 h-12 rounded-2xl bg-primary/10 relative overflow-hidden shrink-0 border border-primary/10">
+                      <Image src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} alt="Me" fill className="object-cover" unoptimized />
                    </div>
-                   <div><h4 className="font-black text-sm leading-tight">{selectedUser.displayName}</h4><span className="text-[9px] font-bold opacity-60">{selectedUser.id === GURU_ID ? "AI Mentor" : "Online Academy Chat"}</span></div>
+                   <textarea placeholder="Ask @guru or share #STEM ideas..." className="w-full p-2 text-base font-medium focus:outline-none bg-transparent resize-none min-h-[100px] italic" value={postContent} onChange={(e) => setPostContent(e.target.value)}/>
                 </div>
-                <ShieldCheck className="w-6 h-6 opacity-40" />
-              </header>
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 scroll-smooth">
-                {activeMessages.map(m => <div key={m.id} className={cn("flex", m.senderId === user?.uid ? 'justify-end' : 'justify-start')}><div className={cn("max-w-[85%] p-4 rounded-[1.8rem] text-sm font-bold leading-relaxed shadow-sm", m.senderId === user?.uid ? 'bg-primary text-white rounded-br-none' : 'bg-white text-slate-700 rounded-bl-none border border-slate-100')}>{m.text}</div></div>)}
+                <Button onClick={handlePost} disabled={isPosting || !postContent} className="rounded-2xl bg-primary font-bold h-14 w-full text-lg mt-4 shadow-lg shadow-primary/20">
+                  {isPosting ? <Loader2 className="animate-spin" /> : <><Plus className="w-5 h-5 mr-2" /> Share Insight</>}
+                </Button>
+              </Card>
+              <div className="space-y-4">
+                {isPostsLoading ? Array.from({ length: 3 }).map((_, i) => <Card key={i} className="border-none kid-card-shadow bg-white rounded-[2.5rem] p-6 mb-8 h-64"><div className="flex items-center gap-3 mb-5"><Skeleton className="w-12 h-12 rounded-2xl" /><div className="space-y-2"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-16" /></div></div><Skeleton className="h-24 w-full rounded-2xl" /></Card>) : posts?.map((post) => <PostCard key={post.id} post={post} allUsers={allUsers || []} />)}
               </div>
-              <div className="p-5 bg-white border-t flex gap-3 sticky bottom-0 z-10">
-                <Input className="rounded-2xl bg-slate-50 border-none h-14 font-bold px-6 italic" placeholder="Type a message..." value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()}/>
-                <Button size="icon" className="rounded-2xl shrink-0 h-14 w-14 bg-primary shadow-lg shadow-primary/20" onClick={sendMessage}><Send className="w-5 h-5" /></Button>
+            </TabsContent>
+
+            <TabsContent value="messages">
+              <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="relative mb-8">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                  <Input className="pl-12 rounded-[2rem] border-none bg-white kid-card-shadow h-16 text-base font-medium italic" placeholder="Find an Explorer or Guru..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
+                </div>
+                <div className="grid gap-4">
+                  {filteredUsers.map(u => <InboxUserCard key={u.id} u={u} currentUser={user} onClick={() => setSelectedUser(u)} />)}
+                </div>
               </div>
+            </TabsContent>
+          </Tabs>
+          <BottomNav />
+        </div>
+      )}
+
+      {selectedUser && (
+        <div className="fixed inset-0 z-[110] bg-white flex flex-col animate-in slide-in-from-right duration-300">
+          <header className="px-6 py-4 border-b flex items-center justify-between bg-white text-slate-900 shadow-sm sticky top-0 z-20">
+            <div className="flex items-center gap-4">
+               <button onClick={() => setSelectedUser(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ArrowLeft className="w-6 h-6" /></button>
+               <div className="w-12 h-12 rounded-2xl bg-slate-100 relative overflow-hidden border border-slate-200 shadow-inner">
+                  <Image src={selectedUser.photoURL || `https://picsum.photos/seed/${selectedUser.id}/100/100`} alt="p" fill className="object-cover" unoptimized />
+               </div>
+               <div>
+                 <h4 className="font-black text-base leading-tight">{selectedUser.displayName}</h4>
+                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedUser.id === GURU_ID ? "AI Academy Mentor" : "Explorer Chat"}</span>
+               </div>
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
-      <BottomNav />
+            <ShieldCheck className="w-6 h-6 text-primary opacity-30" />
+          </header>
+
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 scroll-smooth">
+            {activeMessages.map(m => (
+              <div key={m.id} className={cn("flex flex-col", m.senderId === user?.uid ? 'items-end' : 'items-start')}>
+                <div className={cn(
+                  "max-w-[85%] p-4 rounded-[1.8rem] text-sm font-bold leading-relaxed shadow-sm",
+                  m.senderId === user?.uid 
+                    ? 'bg-primary text-white rounded-br-none kid-card-shadow' 
+                    : 'bg-white text-slate-700 rounded-bl-none border border-slate-100'
+                )}>
+                  {m.text}
+                </div>
+                <span className="text-[9px] font-bold text-slate-300 uppercase mt-1 px-2">
+                  {m.timestamp?.toDate?.() ? m.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Sending...'}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="p-5 bg-white border-t flex items-center gap-3 sticky bottom-0 z-10">
+            <Button variant="ghost" size="icon" className="rounded-2xl shrink-0 h-14 w-14 bg-slate-50 text-slate-400">
+              <Plus className="w-6 h-6" />
+            </Button>
+            <div className="flex-1 relative">
+              <Input 
+                className="rounded-2xl bg-slate-100 border-none h-14 font-bold px-6 pr-14 italic focus-visible:ring-primary/20" 
+                placeholder="Type a message..." 
+                value={messageText} 
+                onChange={(e) => setMessageText(e.target.value)} 
+                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+              />
+              <button className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors">
+                <Mic className="w-5 h-5" />
+              </button>
+            </div>
+            <Button size="icon" className="rounded-2xl shrink-0 h-14 w-14 bg-primary shadow-lg shadow-primary/20 active:scale-90 transition-transform" onClick={sendMessage}>
+              <Send className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

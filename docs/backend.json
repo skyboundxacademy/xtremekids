@@ -52,12 +52,15 @@
     "Message": {
       "title": "Message",
       "type": "object",
-      "description": "Private message between students.",
+      "description": "Private message between students with media support.",
       "properties": {
         "participants": { "type": "array", "items": { "type": "string" } },
         "senderId": { "type": "string" },
         "receiverId": { "type": "string" },
         "text": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "expiresAt": { "type": "string", "format": "date-time", "description": "Date when media should be hidden." },
+        "read": { "type": "boolean" },
         "timestamp": { "type": "string", "format": "date-time" }
       }
     }
