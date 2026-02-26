@@ -109,7 +109,8 @@ export default function LabPage() {
   const toggleLike = async (post: any) => {
     if (!user) return;
     const postRef = doc(db, "posts", post.id);
-    const isLiked = post.likes?.includes(user.uid);
+    const postLikes = Array.isArray(post.likes) ? post.likes : [];
+    const isLiked = postLikes.includes(user.uid);
     await updateDoc(postRef, {
       likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
     });
@@ -181,7 +182,8 @@ export default function LabPage() {
             {posts?.map((post) => {
               const postUser = allUsers?.find(u => u.id === post.userId);
               const title = getUserTitle(postUser?.totalStars || 0);
-              const hasLiked = post.likes?.includes(user?.uid);
+              const postLikes = Array.isArray(post.likes) ? post.likes : [];
+              const hasLiked = user ? postLikes.includes(user.uid) : false;
               
               return (
                 <Card key={post.id} className={`border-none kid-card-shadow bg-white rounded-[2rem] overflow-hidden transition-all active:scale-[0.98] ${post.isGuruResponse ? 'ring-2 ring-purple-400/30' : ''}`}>
@@ -218,7 +220,7 @@ export default function LabPage() {
                           onClick={() => toggleLike(post)}
                           className={`flex items-center gap-2 font-black text-sm transition-all ${hasLiked ? 'text-rose-500 scale-110' : 'text-slate-400'}`}
                         >
-                          <Heart className={`w-5 h-5 ${hasLiked ? 'fill-rose-500' : ''}`} /> {post.likes?.length || 0}
+                          <Heart className={`w-5 h-5 ${hasLiked ? 'fill-rose-500' : ''}`} /> {postLikes.length}
                         </button>
                         <button className="flex items-center gap-2 text-slate-400 font-black text-sm hover:text-blue-500 transition-colors">
                           <MessageCircle className="w-5 h-5" /> {post.commentCount || 0}
@@ -232,7 +234,6 @@ export default function LabPage() {
                       </button>
                     </div>
 
-                    {/* Simple Top Comments Placeholder */}
                     {post.commentCount > 0 && (
                        <div className="mt-4 pt-4 border-t border-slate-50 space-y-3">
                           <div className="flex gap-2 items-start">
@@ -278,7 +279,7 @@ export default function LabPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="font-black text-slate-800 text-lg">{u.displayName || "Explorer"}</h4>
-                        <span className="text-[10px] font-bold text-slate-300">12:30 PM</span>
+                        <span className="text-[10px] font-bold text-slate-300">Active</span>
                       </div>
                       <p className="text-xs font-bold text-primary uppercase tracking-tighter">
                          Level {Math.floor((u.totalStars || 0) / 100)} {getUserTitle(u.totalStars)}

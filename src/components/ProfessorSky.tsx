@@ -38,7 +38,7 @@ export function ProfessorSky() {
           onClick={() => setIsOpen(true)}
           className="w-20 h-20 hover:scale-110 transition-transform active:scale-95 flex items-center justify-center p-0 bg-transparent border-none drop-shadow-2xl"
         >
-          {/* Custom Purple Labubu / Character SVG - No Frame */}
+          {/* Custom Purple Labubu / Character SVG - Frameless */}
           <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* Ears */}
             <ellipse cx="35" cy="25" rx="10" ry="18" fill="#A855F7" />
