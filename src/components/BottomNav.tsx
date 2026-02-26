@@ -25,13 +25,18 @@ export function BottomNav() {
 
   useEffect(() => {
     if (!user || !db) return;
+    // Security Fix: Added participants filter to match security rules and avoid permission-denied errors
     const q = query(
       collection(db, "messages"),
+      where("participants", "array-contains", user.uid),
       where("receiverId", "==", user.uid),
       where("read", "==", false)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setHasNew(!snapshot.empty);
+    }, (error) => {
+      // Gracefully handle any permission issues with a silent fail for notifications
+      console.warn("Notification listener blocked by rules", error);
     });
     return () => unsubscribe();
   }, [user, db]);
@@ -41,7 +46,7 @@ export function BottomNav() {
       <div className="max-w-md mx-auto flex justify-between items-center h-16">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
-          const showDot = item.label === 'Lab' && hasNew;
+          const showDot = (item.label === 'Lab' || item.label === 'Home') && hasNew;
 
           return (
             <Link
