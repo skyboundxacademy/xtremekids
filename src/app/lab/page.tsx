@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Heart, User, Sparkles, Loader2, Plus, Globe, Send, ArrowLeft, Search, Repeat2, MessageSquare, CheckCircle2, ShieldCheck, ChevronDown, ChevronUp, Bell } from "lucide-react";
+import { Heart, User, Sparkles, Loader2, Plus, Globe, Send, ArrowLeft, Search, Repeat2, MessageSquare, CheckCircle2, ShieldCheck, ChevronDown, ChevronUp, Bell, Reply } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit, increment, onSnapshot } from "firebase/firestore";
@@ -40,6 +40,7 @@ function PostComments({ postId }: { postId: string }) {
   const [comments, setComments] = useState<any[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [replyingTo, setReplyingTo] = useState<any>(null);
 
   useEffect(() => {
     if (!postId) return;
@@ -61,62 +62,125 @@ function PostComments({ postId }: { postId: string }) {
     });
   };
 
-  const submitComment = () => {
-    if (!user || !commentText) return;
+  const submitComment = async (parentId: string | null = null) => {
+    const text = commentText.trim();
+    if (!user || !text) return;
+    
     const commentData = {
       userId: user.uid,
       userName: user.displayName || "Explorer",
       userPhoto: user.photoURL,
-      text: commentText,
+      text: text,
       likes: [],
       likesCount: 0,
+      parentId: parentId,
       timestamp: serverTimestamp()
     };
-    addDoc(collection(db, `posts/${postId}/comments`), commentData).then(() => {
+
+    setCommentText("");
+    setReplyingTo(null);
+
+    const docRef = await addDoc(collection(db, `posts/${postId}/comments`), commentData);
+    
+    // Only increment main post comment count if it's a top-level comment
+    if (!parentId) {
       updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
-      setCommentText("");
-    });
+    }
+
+    // Guru Mention Logic in Comments
+    if (text.toLowerCase().includes("@guru")) {
+      const question = text.replace(/@guru/gi, "").trim();
+      try {
+        const res = await explainConcept({ concept: question });
+        addDoc(collection(db, `posts/${postId}/comments`), {
+          userId: "guru-ai",
+          userName: "Professor Sky",
+          userPhoto: "https://picsum.photos/seed/guru/200/200",
+          text: `@${user.displayName} ${res.explanation}`,
+          parentId: docRef.id, // Guru replies to the specific comment
+          likes: [],
+          likesCount: 0,
+          timestamp: serverTimestamp()
+        });
+      } catch (e) {}
+    }
   };
 
-  const topComments = showAll ? comments : comments.slice(0, 3);
+  const topLevelComments = comments.filter(c => !c.parentId);
+  const displayComments = showAll ? topLevelComments : topLevelComments.slice(0, 3);
 
   return (
     <div className="mt-4 space-y-3">
-      <div className="flex gap-2 mb-4">
-        <Input 
-          className="rounded-xl h-10 text-xs bg-slate-50 border-none italic" 
-          placeholder="Add a comment..." 
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && submitComment()}
-        />
-        <Button size="sm" className="rounded-xl bg-primary h-10 px-4 font-bold" onClick={submitComment}>Post</Button>
+      <div className="flex flex-col gap-2 mb-4">
+        {replyingTo && (
+          <div className="flex items-center justify-between px-3 py-1 bg-primary/5 rounded-t-xl text-[10px] font-bold text-primary">
+            <span>Replying to {replyingTo.userName}</span>
+            <button onClick={() => setReplyingTo(null)} className="text-rose-500">Cancel</button>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <Input 
+            className={cn("rounded-xl h-10 text-xs bg-slate-50 border-none italic", replyingTo && "rounded-tl-none")} 
+            placeholder={replyingTo ? "Write your reply..." : "Add a comment..."} 
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submitComment(replyingTo?.id || null)}
+          />
+          <Button size="sm" className="rounded-xl bg-primary h-10 px-4 font-bold" onClick={() => submitComment(replyingTo?.id || null)}>
+            {replyingTo ? 'Reply' : 'Post'}
+          </Button>
+        </div>
       </div>
 
-      {topComments.map((c) => (
-        <div key={c.id} className="flex gap-3 animate-in fade-in slide-in-from-top-1">
-          <div className="w-8 h-8 rounded-lg bg-slate-100 relative shrink-0 overflow-hidden border border-slate-100">
-             <Image src={c.userPhoto || `https://picsum.photos/seed/${c.userId}/50/50`} alt="p" fill className="object-cover" unoptimized />
+      {displayComments.map((c) => (
+        <div key={c.id} className="space-y-2">
+          {/* Main Comment */}
+          <div className="flex gap-3 animate-in fade-in slide-in-from-top-1">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 relative shrink-0 overflow-hidden border border-slate-100">
+               <Image src={c.userPhoto || `https://picsum.photos/seed/${c.userId}/50/50`} alt="p" fill className="object-cover" unoptimized />
+            </div>
+            <div className="flex-1 bg-slate-50 p-3 rounded-2xl relative border border-slate-100/50">
+              <h5 className="text-[10px] font-black text-slate-900 mb-1">{c.userName}</h5>
+              <p className="text-xs font-medium text-slate-700 leading-tight"><HighlightText text={c.text} /></p>
+              
+              <div className="flex items-center gap-4 mt-2">
+                <button 
+                  onClick={() => handleLikeComment(c.id, c.likes)}
+                  className={cn("flex items-center gap-1 text-[9px] font-black uppercase tracking-widest", c.likes?.includes(user?.uid) ? "text-rose-500" : "text-slate-400")}
+                >
+                  <Heart className={cn("w-3 h-3", c.likes?.includes(user?.uid) && "fill-rose-500")} /> {c.likesCount || 0}
+                </button>
+                <button 
+                  onClick={() => { setReplyingTo(c); setCommentText(""); }}
+                  className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest"
+                >
+                  <Reply className="w-3 h-3" /> Reply
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="flex-1 bg-slate-50 p-3 rounded-2xl relative border border-slate-100/50">
-            <h5 className="text-[10px] font-black text-slate-900 mb-1">{c.userName}</h5>
-            <p className="text-xs font-medium text-slate-700 leading-tight"><HighlightText text={c.text} /></p>
-            <button 
-              onClick={() => handleLikeComment(c.id, c.likes)}
-              className={cn("absolute bottom-2 right-3 flex items-center gap-1 text-[10px] font-bold", c.likes?.includes(user?.uid) ? "text-rose-500" : "text-slate-400")}
-            >
-              <Heart className={cn("w-3 h-3", c.likes?.includes(user?.uid) && "fill-rose-500")} /> {c.likesCount || 0}
-            </button>
-          </div>
+
+          {/* Nested Replies */}
+          {comments.filter(reply => reply.parentId === c.id).map(reply => (
+            <div key={reply.id} className="flex gap-3 pl-10 animate-in fade-in slide-in-from-left-2">
+               <div className="w-6 h-6 rounded-md bg-slate-100 relative shrink-0 overflow-hidden">
+                 <Image src={reply.userPhoto || `https://picsum.photos/seed/${reply.userId}/30/30`} alt="p" fill className="object-cover" unoptimized />
+               </div>
+               <div className="flex-1 bg-slate-100/40 p-2 rounded-xl border border-slate-200/50">
+                 <h5 className="text-[9px] font-black text-slate-600 mb-0.5">{reply.userName}</h5>
+                 <p className="text-[11px] font-medium text-slate-600 leading-tight"><HighlightText text={reply.text} /></p>
+               </div>
+            </div>
+          ))}
         </div>
       ))}
 
-      {comments.length > 3 && (
+      {topLevelComments.length > 3 && (
         <button 
           onClick={() => setShowAll(!showAll)}
           className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 mt-2 pl-2"
         >
-          {showAll ? <><ChevronUp className="w-3 h-3"/> Show Less</> : <><ChevronDown className="w-3 h-3"/> See More Comments ({comments.length - 3})</>}
+          {showAll ? <><ChevronUp className="w-3 h-3"/> Show Less</> : <><ChevronDown className="w-3 h-3"/> See More Comments ({topLevelComments.length - 3})</>}
         </button>
       )}
     </div>
@@ -504,3 +568,4 @@ export default function LabPage() {
     setMessageText("");
   }
 }
+
