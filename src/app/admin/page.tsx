@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Sparkles, Loader2, BrainCircuit, CheckCircle2, AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2, BrainCircuit, Trash2, Plus, Wand2, BookOpen, GraduationCap, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -17,13 +17,15 @@ import { generateDeepLesson } from "@/ai/flows/content-generator";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const SUBJECTS = [
   "Mathematics", "Further Mathematics", "English Language", "Literature-in-English", 
   "Physics", "Chemistry", "Biology", "Agricultural Science", "Economics", 
   "Geography", "Government", "Civic Education", "Financial Accounting", 
   "Commerce", "ICT / Data Processing", "Technical Drawing", "CRS / IRS", "Visual Arts",
-  "Basic Science", "Basic Technology", "Social Studies", "Home Economics", "Physical and Health Education"
+  "Basic Science", "Basic Technology", "Social Studies", "Home Economics", "Physical and Health Education",
+  "French", "Igbo", "Yoruba", "Hausa", "Arabic"
 ];
 
 const CLASSES = [
@@ -37,6 +39,7 @@ export default function AdminPage() {
   const db = useFirestore();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [aiArchitectStatus, setAiArchitectStatus] = useState<"idle" | "building" | "ready">("idle");
   
   const [lessonForm, setLessonForm] = useState({
     title: "",
@@ -60,11 +63,11 @@ export default function AdminPage() {
 
   const handleAiMagic = async () => {
     if (!lessonForm.title || !lessonForm.subject || !lessonForm.targetClass) {
-      toast({ title: "Command Error", description: "Fill Title, Subject and Class first!" });
+      toast({ title: "Architecting Error", description: "Please provide a Title, Subject, and Class first." });
       return;
     }
     setLoading(true);
-    toast({ title: "Architecting Course...", description: "Professor Sky is researching the scheme of work." });
+    setAiArchitectStatus("building");
     try {
       const result = await generateDeepLesson({
         title: lessonForm.title,
@@ -75,13 +78,12 @@ export default function AdminPage() {
       setLessonForm(prev => ({
         ...prev,
         ...result,
-        title: prev.title, 
-        subject: prev.subject,
-        targetClass: prev.targetClass
       }));
-      toast({ title: "Academic Path Ready", description: "Self-healing images and polls generated." });
+      setAiArchitectStatus("ready");
+      toast({ title: "Path Architected!", description: "Professor Sky has mapped out a deep interactive path." });
     } catch (e) {
-      toast({ title: "AI Error", variant: "destructive" });
+      toast({ title: "Architecting Failed", variant: "destructive" });
+      setAiArchitectStatus("idle");
     } finally {
       setLoading(false);
     }
@@ -89,20 +91,20 @@ export default function AdminPage() {
 
   const handlePublish = async () => {
     if (lessonForm.steps.length === 0) {
-      toast({ title: "No Steps", description: "Add steps manually or use the AI architect." });
+      toast({ title: "Incomplete Path", description: "Please add steps manually or use the AI Architect." });
       return;
     }
     setLoading(true);
     try {
       await addDoc(collection(db, "lessons"), {
         ...lessonForm,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        category: lessonForm.subject // Aligning category with subject for browse logic
       });
-      toast({ title: "Academy Live", description: "Path is now open for students." });
-      setLessonForm({ title: "", subject: "", targetClass: "", idea: "", imageUrl: "", description: "", steps: [] });
+      toast({ title: "Academy Live!", description: "The path is now available for global students." });
       router.push('/academy');
     } catch (e) {
-      toast({ title: "Publish Failed", variant: "destructive" });
+      toast({ title: "Publishing Failed", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -111,106 +113,158 @@ export default function AdminPage() {
   if (isUserLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 max-w-4xl mx-auto pb-24">
-      <header className="flex items-center gap-4 mb-8">
-        <Link href="/profile"><Button variant="outline" size="icon" className="rounded-full"><ArrowLeft className="w-4 h-4" /></Button></Link>
-        <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter">Academic Command</h1>
-      </header>
-
-      <Card className="border-none kid-card-shadow bg-white p-8 rounded-[2.5rem] space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <Label className="font-bold">Lesson Title</Label>
-            <Input value={lessonForm.title} onChange={e => setLessonForm(p => ({...p, title: e.target.value}))} placeholder="e.g. Physics of Flight" className="rounded-xl h-12" />
-          </div>
-          <div className="space-y-2">
-            <Label className="font-bold">Subject</Label>
-            <Select onValueChange={v => setLessonForm(p => ({...p, subject: v}))} value={lessonForm.subject}>
-              <SelectTrigger className="rounded-xl h-12"><SelectValue placeholder="Subject" /></SelectTrigger>
-              <SelectContent>
-                {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="font-bold">Target Class</Label>
-            <Select onValueChange={v => setLessonForm(p => ({...p, targetClass: v}))} value={lessonForm.targetClass}>
-              <SelectTrigger className="rounded-xl h-12"><SelectValue placeholder="Class" /></SelectTrigger>
-              <SelectContent>
-                {CLASSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-           <Label className="font-bold">Lesson Idea / Focus (Teachers can specify details here)</Label>
-           <Input value={lessonForm.idea} onChange={e => setLessonForm(p => ({...p, idea: e.target.value}))} placeholder="e.g. Focus on Newton's Laws" className="rounded-xl h-12" />
-        </div>
-
-        <div className="p-6 bg-primary/5 rounded-[2rem] border-2 border-dashed border-primary/20 text-center relative overflow-hidden">
-          <BrainCircuit className="w-10 h-10 text-primary mx-auto mb-2" />
-          <p className="text-xs font-bold text-primary mb-4 uppercase tracking-widest italic">Trigger Professor Sky to architect the lesson path for you.</p>
-          <Button onClick={handleAiMagic} disabled={loading} className="bg-primary hover:bg-primary/90 h-14 px-8 rounded-2xl font-black text-lg kid-card-shadow">
-            {loading ? <Loader2 className="animate-spin" /> : <><Sparkles className="mr-2" /> MAGIC AI FILL</>}
-          </Button>
-        </div>
-
-        {lessonForm.steps.length > 0 && (
-          <div className="space-y-8 animate-in zoom-in-95 duration-500">
-            <div className="flex items-center gap-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-               <div className="relative w-24 h-24 rounded-2xl overflow-hidden shrink-0">
-                  <Image src={lessonForm.imageUrl || `https://picsum.photos/seed/${lessonForm.title}/400/300`} alt="Card" fill className="object-cover" unoptimized />
-               </div>
-               <div className="flex-1">
-                  <h3 className="font-black text-primary text-xl uppercase italic leading-tight">{lessonForm.title}</h3>
-                  <p className="text-[10px] font-bold text-slate-400 italic mt-1">{lessonForm.description}</p>
-               </div>
-               <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-500" onClick={() => setLessonForm(p => ({...p, steps: []}))}><Trash2 className="w-5 h-5" /></Button>
-            </div>
-
-            <div className="space-y-6">
-              <h3 className="text-xl font-black text-primary uppercase italic tracking-tighter">Academic Path Preview</h3>
-              <div className="grid gap-4">
-                {lessonForm.steps.map((step, i) => (
-                  <div key={i} className="p-6 bg-white rounded-3xl border-2 border-slate-50 relative group hover:border-primary/20 transition-all">
-                    <div className="flex justify-between items-start mb-4">
-                       <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Section {i+1}</span>
-                       <Badge variant="outline" className="text-[9px] font-black uppercase italic">{step.type}</Badge>
-                    </div>
-                    
-                    <div className="flex gap-4">
-                       {step.imageUrl && (
-                         <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-slate-100 shadow-sm">
-                            <Image src={step.imageUrl} alt="step" fill className="object-cover" unoptimized />
-                         </div>
-                       )}
-                       <p className="text-xs font-medium text-slate-700 leading-relaxed flex-1 italic">{step.content}</p>
-                    </div>
-
-                    {step.poll && (
-                      <div className="mt-4 p-4 bg-secondary/5 rounded-2xl border border-secondary/10">
-                         <p className="text-[10px] font-black text-secondary mb-2 uppercase italic">Interactive Knowledge Check</p>
-                         <p className="text-xs font-bold mb-2">{step.poll.question}</p>
-                         <div className="flex flex-wrap gap-2">
-                            {step.poll.options.map((opt: string) => (
-                              <div key={opt} className={cn("px-3 py-1 text-[9px] font-black rounded-lg border", opt === step.poll.correctAnswer ? "bg-green-50 text-green-600 border-green-100" : "bg-white border-slate-100")}>
-                                {opt}
-                              </div>
-                            ))}
-                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <Button onClick={handlePublish} disabled={loading} className="w-full h-16 bg-primary text-white font-black text-xl rounded-[2.5rem] kid-card-shadow shadow-primary/20 mt-8 uppercase italic tracking-tighter">
-                PUBLISH ELITE PATH
+    <main className="min-h-screen bg-slate-50">
+      <div className="max-w-[1400px] mx-auto p-6 lg:p-10">
+        <header className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-4">
+            <Link href="/profile">
+              <Button variant="outline" size="icon" className="rounded-full w-12 h-12 border-primary/20 bg-white shadow-sm">
+                <ArrowLeft className="w-5 h-5 text-primary" />
               </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-black text-primary uppercase italic tracking-tighter leading-none">Command Center</h1>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">Architecting High-IQ Futures</p>
             </div>
           </div>
-        )}
-      </Card>
+          <Button onClick={handlePublish} disabled={loading || lessonForm.steps.length === 0} className="rounded-2xl h-14 px-10 bg-primary font-black text-lg kid-card-shadow uppercase italic tracking-tighter">
+            {loading ? <Loader2 className="animate-spin mr-2" /> : <><CheckCircle2 className="mr-2" /> Publish Path</>}
+          </Button>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Main Manual Form */}
+          <div className="lg:col-span-7 space-y-8">
+            <Card className="border-none kid-card-shadow bg-white p-8 rounded-[2.5rem] space-y-8">
+              <div className="flex items-center gap-2 mb-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-black text-slate-800 uppercase italic">Teacher's Desk</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-400">Lesson Title</Label>
+                  <Input value={lessonForm.title} onChange={e => setLessonForm(p => ({...p, title: e.target.value}))} placeholder="e.g. Intro to Web Development" className="rounded-xl h-14 bg-slate-50 border-none font-bold italic" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-400">Academic Level</Label>
+                  <Select onValueChange={v => setLessonForm(p => ({...p, targetClass: v}))} value={lessonForm.targetClass}>
+                    <SelectTrigger className="rounded-xl h-14 bg-slate-50 border-none font-bold italic"><SelectValue placeholder="Select Class" /></SelectTrigger>
+                    <SelectContent>
+                      {CLASSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="font-bold text-xs uppercase tracking-widest text-slate-400">Subject Category</Label>
+                <Select onValueChange={v => setLessonForm(p => ({...p, subject: v}))} value={lessonForm.subject}>
+                  <SelectTrigger className="rounded-xl h-14 bg-slate-50 border-none font-bold italic"><SelectValue placeholder="Select Subject" /></SelectTrigger>
+                  <SelectContent>
+                    <ScrollArea className="h-80">
+                      {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </ScrollArea>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="font-bold text-xs uppercase tracking-widest text-slate-400">Focus / Core Concept (Optional)</Label>
+                <Input value={lessonForm.idea} onChange={e => setLessonForm(p => ({...p, idea: e.target.value}))} placeholder="e.g. Focus on HTML tags and visual design" className="rounded-xl h-14 bg-slate-50 border-none font-bold italic" />
+              </div>
+
+              {lessonForm.steps.length > 0 && (
+                <div className="space-y-6 pt-6 border-t border-slate-100">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-black text-primary uppercase italic">Lesson Preview</h3>
+                    <Button variant="ghost" className="text-rose-500 font-black text-[10px] uppercase" onClick={() => setLessonForm(p => ({...p, steps: []}))}>
+                      <Trash2 className="w-4 h-4 mr-1" /> Clear Path
+                    </Button>
+                  </div>
+                  <div className="grid gap-4">
+                    {lessonForm.steps.map((step, i) => (
+                      <div key={i} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 relative group transition-all">
+                        <div className="flex justify-between items-center mb-4">
+                          <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Section {i+1}</span>
+                          <Badge className="bg-white text-primary border-primary/20 uppercase text-[9px] font-black">{step.type}</Badge>
+                        </div>
+                        <div className="flex gap-4">
+                          {step.imageUrl && (
+                            <div className="relative w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-sm border border-white">
+                              <Image src={step.imageUrl} alt="preview" fill className="object-cover" unoptimized />
+                            </div>
+                          )}
+                          <div className="flex-1 space-y-2">
+                            <p className="text-xs font-medium text-slate-700 leading-relaxed italic line-clamp-3">{step.content}</p>
+                            {step.poll && <Badge variant="secondary" className="bg-secondary/10 text-secondary uppercase text-[8px] font-black">Interactive Poll Included</Badge>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* AI Architect Panel */}
+          <div className="lg:col-span-5">
+            <Card className="border-none kid-card-shadow bg-primary rounded-[3rem] p-8 text-white h-full relative overflow-hidden flex flex-col">
+              <div className="absolute top-0 right-0 p-10 opacity-10">
+                <BrainCircuit className="w-64 h-64" />
+              </div>
+              
+              <div className="relative z-10 flex-1 flex flex-col">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center relative overflow-hidden">
+                    <Image src="https://picsum.photos/seed/labubu-purple/400/400" alt="Guru" fill className="object-cover" unoptimized />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black uppercase italic tracking-tighter leading-none">Professor Sky</h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Architectural AI Assistant</p>
+                  </div>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-md rounded-[2rem] p-6 mb-8 border border-white/10">
+                  <p className="text-sm font-bold leading-relaxed italic">
+                    {aiArchitectStatus === "idle" && "I'm ready to architect the highest-IQ educational path. Type in your course details and click 'Magic Fill'!"}
+                    {aiArchitectStatus === "building" && "Architecting the academic journey... researching global schemes of work and generating interactive polls."}
+                    {aiArchitectStatus === "ready" && "The Path is ready! I've included 10 deep academic steps, real visual references, and interactive checks."}
+                  </p>
+                </div>
+
+                {aiArchitectStatus === "idle" && (
+                  <Button onClick={handleAiMagic} disabled={loading || !lessonForm.title} className="w-full h-16 bg-white text-primary hover:bg-white/90 rounded-[2rem] font-black text-xl shadow-xl shadow-primary/40 uppercase italic tracking-tighter transition-all">
+                    {loading ? <Loader2 className="animate-spin" /> : <><Wand2 className="mr-2" /> MAGIC AI FILL</>}
+                  </Button>
+                )}
+
+                {aiArchitectStatus === "ready" && (
+                  <div className="space-y-4">
+                    <Button onClick={handleAiMagic} disabled={loading} className="w-full h-14 bg-white/20 backdrop-blur-md text-white border border-white/30 rounded-2xl font-black text-lg uppercase italic">
+                      <Wand2 className="mr-2" /> Re-Architect
+                    </Button>
+                    <p className="text-center text-[10px] font-black uppercase tracking-widest opacity-60">Path sync complete. Review steps on the desk.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-auto pt-10 border-t border-white/10 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                    <GraduationCap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest">Global Standard</h4>
+                    <p className="text-[9px] font-bold opacity-60">Based on official Primary & Secondary schemes</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

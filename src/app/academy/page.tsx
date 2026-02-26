@@ -5,7 +5,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, ArrowRight, CheckCircle2, GraduationCap, Compass, BookOpen, ChevronRight } from "lucide-react";
+import { Search, ArrowRight, CheckCircle2, GraduationCap, Compass, BookOpen, ChevronRight, LayoutGrid } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -17,24 +17,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const SUBJECTS = [
-  { name: "Mathematics", icon: "https://picsum.photos/seed/math/400/300" },
-  { name: "Further Mathematics", icon: "https://picsum.photos/seed/math2/400/300" },
-  { name: "English Language", icon: "https://picsum.photos/seed/english/400/300" },
-  { name: "Literature-in-English", icon: "https://picsum.photos/seed/books/400/300" },
-  { name: "Physics", icon: "https://picsum.photos/seed/physics/400/300" },
-  { name: "Chemistry", icon: "https://picsum.photos/seed/chemistry/400/300" },
-  { name: "Biology", icon: "https://picsum.photos/seed/biology/400/300" },
-  { name: "Agricultural Science", icon: "https://picsum.photos/seed/farm/400/300" },
-  { name: "Economics", icon: "https://picsum.photos/seed/money/400/300" },
-  { name: "Geography", icon: "https://picsum.photos/seed/earth/400/300" },
-  { name: "Government", icon: "https://picsum.photos/seed/law/400/300" },
-  { name: "Civic Education", icon: "https://picsum.photos/seed/peace/400/300" },
-  { name: "Financial Accounting", icon: "https://picsum.photos/seed/account/400/300" },
-  { name: "Commerce", icon: "https://picsum.photos/seed/market/400/300" },
-  { name: "ICT / Data Processing", icon: "https://picsum.photos/seed/ict/400/300" },
-  { name: "Technical Drawing", icon: "https://picsum.photos/seed/draft/400/300" },
-  { name: "CRS / IRS", icon: "https://picsum.photos/seed/faith/400/300" },
-  { name: "Visual Arts", icon: "https://picsum.photos/seed/art/400/300" }
+  { name: "Mathematics", icon: "https://picsum.photos/seed/math/400/300", category: "Mathematics" },
+  { name: "English Language", icon: "https://picsum.photos/seed/english/400/300", category: "English Language" },
+  { name: "Physics", icon: "https://picsum.photos/seed/physics/400/300", category: "Physics" },
+  { name: "Chemistry", icon: "https://picsum.photos/seed/chemistry/400/300", category: "Chemistry" },
+  { name: "Biology", icon: "https://picsum.photos/seed/biology/400/300", category: "Biology" },
+  { name: "ICT", icon: "https://picsum.photos/seed/ict/400/300", category: "ICT / Data Processing" },
+  { name: "Geography", icon: "https://picsum.photos/seed/earth/400/300", category: "Geography" },
+  { name: "Economics", icon: "https://picsum.photos/seed/money/400/300", category: "Economics" },
+  { name: "Government", icon: "https://picsum.photos/seed/law/400/300", category: "Government" },
+  { name: "Civic Education", icon: "https://picsum.photos/seed/peace/400/300", category: "Civic Education" },
+  { name: "Agric Science", icon: "https://picsum.photos/seed/farm/400/300", category: "Agricultural Science" },
+  { name: "Visual Arts", icon: "https://picsum.photos/seed/art/400/300", category: "Visual Arts" },
+  { name: "Technical Drawing", icon: "https://picsum.photos/seed/draft/400/300", category: "Technical Drawing" },
+  { name: "Further Maths", icon: "https://picsum.photos/seed/advanced-math/400/300", category: "Further Mathematics" },
+  { name: "Literature", icon: "https://picsum.photos/seed/books/400/300", category: "Literature-in-English" }
 ];
 
 export default function AcademyPage() {
@@ -157,7 +154,7 @@ export default function AcademyPage() {
               {SUBJECTS.map((subj) => (
                 <button 
                   key={subj.name}
-                  onClick={() => setSelectedSubject(subj.name)}
+                  onClick={() => setSelectedSubject(subj.category)}
                   className="relative h-40 rounded-[2rem] overflow-hidden kid-card-shadow group"
                 >
                   <Image src={subj.icon} alt={subj.name} fill className="object-cover group-hover:scale-110 transition-transform" unoptimized />
