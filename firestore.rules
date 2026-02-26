@@ -3,6 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() { return request.auth != null; }
+    
     function isAdmin() { 
       return isSignedIn() && (
         request.auth.token.email == 'goddikrayz@gmail.com' ||
@@ -10,45 +11,46 @@ service cloud.firestore {
       );
     }
 
+    // Students can read/write their own profile
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
     }
 
+    // Everyone logged in can read lessons
     match /lessons/{lessonId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
+    // Everyone logged in can read tasks
     match /tasks/{taskId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
+    // Social feed is open to all explorers
     match /posts/{postId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
+      allow read, create: if isSignedIn();
       allow update: if isSignedIn(); 
       allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       
       match /comments/{commentId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isSignedIn();
-        allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+        allow read, create: if isSignedIn();
+        allow update, delete: if isSignedIn();
       }
     }
 
+    // Messaging rules: User must be one of the participants
     match /messages/{messageId} {
       allow create: if isSignedIn();
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants);
-      allow update: if isSignedIn() && (request.auth.uid in resource.data.participants);
+      allow read, update: if isSignedIn() && (request.auth.uid in resource.data.participants);
     }
 
+    // Submissions: Students create their own, admins review
     match /submissions/{submissionId} {
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow get, list: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow create: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow update, delete: if isAdmin();
     }
   }

@@ -3,7 +3,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Sparkles, ArrowRight, ArrowLeft, Loader2, CheckCircle2, Award, Info, HelpCircle } from "lucide-react";
+import { ChevronLeft, Sparkles, ArrowRight, ArrowLeft, Loader2, CheckCircle2, Award, HelpCircle } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -33,14 +33,19 @@ export default function LessonDetailPage() {
   useEffect(() => {
     if (!user || !lesson) return;
     const checkStatus = async () => {
-      const q = query(
-        collection(db, "submissions"),
-        where("userId", "==", user.uid),
-        where("taskTitle", "==", `Completed Lesson: ${lesson.title}`)
-      );
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) setIsCompleted(true);
-      setCheckingCompletion(false);
+      try {
+        const q = query(
+          collection(db, "submissions"),
+          where("userId", "==", user.uid),
+          where("taskTitle", "==", `Completed Lesson: ${lesson.title}`)
+        );
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) setIsCompleted(true);
+      } catch (e) {
+        console.error("Status check failed", e);
+      } finally {
+        setCheckingCompletion(false);
+      }
     };
     checkStatus();
   }, [user, lesson, db]);
@@ -56,6 +61,7 @@ export default function LessonDetailPage() {
   };
 
   const handleNext = () => {
+    if (!lesson?.steps) return;
     const step = lesson.steps[currentStep];
     if (step.type === 'poll' && !selectedOption) {
       toast({ title: "Wait!", description: "Professor Sky needs your answer first!" });
@@ -65,8 +71,28 @@ export default function LessonDetailPage() {
       setCurrentStep(prev => prev + 1);
       setSelectedOption(null);
       setAiFeedback(null);
+      // Scroll to top on next step
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  if (isLessonLoading || checkingCompletion) {
+    return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" /></div>;
+  }
+
+  // Safety guard for missing lesson or steps
+  if (!lesson || !lesson.steps || !lesson.steps[currentStep]) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-4">
+        <HelpCircle className="w-12 h-12 text-slate-200" />
+        <h2 className="font-black text-slate-400 uppercase tracking-widest italic">Preparing your academic path...</h2>
+        <Button onClick={() => router.back()} variant="outline" className="rounded-full">Go Back</Button>
+      </div>
+    );
+  }
+
+  const step = lesson.steps[currentStep];
+  const progress = ((currentStep + 1) / lesson.steps.length) * 100;
 
   const handleFinish = async () => {
     if (!user || !lesson || isCompleted) return;
@@ -83,18 +109,12 @@ export default function LessonDetailPage() {
 
     addDoc(collection(db, "submissions"), submissionData)
       .then(() => {
-        toast({ title: "Excellence Achieved!", description: "You've earned your Badge!" });
+        toast({ title: "Excellence Achieved!", description: "You've earned your Certificate!" });
         setIsCompleted(true);
         router.push('/academy');
       })
       .finally(() => setIsSubmitting(false));
   };
-
-  if (isLessonLoading || checkingCompletion) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" /></div>;
-  if (!lesson) return <div className="p-10 text-center font-black uppercase text-slate-300">Lesson not found</div>;
-
-  const step = lesson.steps[currentStep];
-  const progress = ((currentStep + 1) / lesson.steps.length) * 100;
 
   return (
     <main className="min-h-screen bg-white max-w-md mx-auto relative pb-32">
@@ -134,10 +154,10 @@ export default function LessonDetailPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-4 text-secondary">
                 <HelpCircle className="w-5 h-5" />
-                <h4 className="font-black text-lg italic tracking-tight uppercase">{step.poll.question}</h4>
+                <h4 className="font-black text-lg italic tracking-tight uppercase">{step.poll?.question || "Quick Knowledge Check"}</h4>
               </div>
               <div className="grid gap-3">
-                {step.poll.options.map((opt: string) => (
+                {step.poll?.options?.map((opt: string) => (
                   <button
                     key={opt}
                     onClick={() => handlePollSubmit(opt, step.poll.correctAnswer, step.poll.explanation)}
@@ -174,7 +194,7 @@ export default function LessonDetailPage() {
             </Button>
           )}
           
-          {currentStep < lesson.steps.length - 1 ? (
+          {currentStep < (lesson.steps?.length || 0) - 1 ? (
             <Button onClick={handleNext} className="flex-[2] rounded-2xl h-14 bg-primary font-black text-lg kid-card-shadow uppercase italic tracking-tighter">
               Next Step <ArrowRight className="ml-2" />
             </Button>

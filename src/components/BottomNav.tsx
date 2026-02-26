@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Home, BookOpen, FlaskConical, ClipboardList, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, limit } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 
 const navItems = [
@@ -25,19 +25,21 @@ export function BottomNav() {
 
   useEffect(() => {
     if (!user || !db) return;
-    // Security Fix: Added participants filter to match security rules and avoid permission-denied errors
+    
+    // Clean notification query - only look for messages sent to US that are unread
     const q = query(
       collection(db, "messages"),
-      where("participants", "array-contains", user.uid),
       where("receiverId", "==", user.uid),
-      where("read", "==", false)
+      where("read", "==", false),
+      limit(1)
     );
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setHasNew(!snapshot.empty);
     }, (error) => {
-      // Gracefully handle any permission issues with a silent fail for notifications
-      console.warn("Notification listener blocked by rules", error);
+      console.warn("Notification listener status:", error.message);
     });
+    
     return () => unsubscribe();
   }, [user, db]);
 
