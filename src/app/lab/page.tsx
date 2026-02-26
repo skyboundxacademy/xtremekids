@@ -43,12 +43,19 @@ function PostComments({ postId }: { postId: string }) {
   const [commentText, setCommentText] = useState("");
 
   useEffect(() => {
-    // Simplified query to avoid missing index errors
-    const q = query(collection(db, `posts/${postId}/comments`), orderBy("timestamp", "desc"));
+    // Simplified query to avoid index errors, sorting in memory
+    const q = query(collection(db, `posts/${postId}/comments`));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
-      // Sort by likesCount in memory to avoid index requirements
-      setComments(data.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0)));
+      // Sort by likesCount (desc) then timestamp (desc) in memory
+      setComments(data.sort((a, b) => {
+        if ((b.likesCount || 0) !== (a.likesCount || 0)) {
+          return (b.likesCount || 0) - (a.likesCount || 0);
+        }
+        const timeA = a.timestamp?.seconds || 0;
+        const timeB = b.timestamp?.seconds || 0;
+        return timeB - timeA;
+      }));
     });
     return () => unsubscribe();
   }, [db, postId]);
@@ -144,7 +151,7 @@ function PostCard({ post, allUsers }: { post: any, allUsers: any[] }) {
   const toggleLike = () => {
     if (!user) return;
     const postRef = doc(db, "posts", post.id);
-    const hasLiked = (post.likes || []).includes(user.uid);
+    const hasLiked = (Array.isArray(post.likes) ? post.likes : []).includes(user.uid);
     updateDoc(postRef, {
       likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid),
       likesCount: increment(hasLiked ? -1 : 1)
@@ -173,7 +180,7 @@ function PostCard({ post, allUsers }: { post: any, allUsers: any[] }) {
   };
 
   const isLongPost = post.content?.length > 200;
-  const hasLiked = (post.likes || []).includes(user?.uid);
+  const hasLiked = (Array.isArray(post.likes) ? post.likes : []).includes(user?.uid);
 
   return (
     <Card className={cn("border-none kid-card-shadow bg-white rounded-[2.5rem] overflow-hidden p-6 mb-8", post.isGuruResponse && "ring-4 ring-purple-100 border-2 border-purple-200")}>
@@ -261,15 +268,20 @@ export default function LabPage() {
   const [activeMessages, setActiveMessages] = useState<any[]>([]);
   useEffect(() => {
     if (!user || !selectedUser) return;
+    // Simplified query to avoid missing composite index errors (array-contains + orderBy)
     const q = query(
       collection(db, "messages"),
-      where("participants", "array-contains", user.uid),
-      orderBy("timestamp", "asc")
+      where("participants", "array-contains", user.uid)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs
         .map(d => ({ ...d.data(), id: d.id }))
-        .filter((m: any) => m.participants.includes(selectedUser.id));
+        .filter((m: any) => m.participants.includes(selectedUser.id))
+        .sort((a: any, b: any) => {
+           const timeA = a.timestamp?.seconds || 0;
+           const timeB = b.timestamp?.seconds || 0;
+           return timeA - timeB; // Sort ascending (oldest first)
+        });
       setActiveMessages(msgs);
     });
     return () => unsubscribe();
