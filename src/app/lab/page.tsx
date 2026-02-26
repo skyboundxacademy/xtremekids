@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Heart, User, Sparkles, Loader2, Plus, Globe, Send, ArrowLeft, Search, Repeat2, MessageSquare, CheckCircle2, ShieldCheck, ChevronDown, ChevronUp, Bell, Reply } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit, increment, onSnapshot, writeBatch, getDocs } from "firebase/firestore";
 import Image from "next/image";
@@ -50,6 +50,7 @@ function PostComments({ postId }: { postId: string }) {
     const q = query(collection(db, `posts/${postId}/comments`));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
+      // Clientside sorting to avoid index requirements for now
       setComments(data.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0)));
     });
     return () => unsubscribe();
@@ -316,6 +317,7 @@ function InboxUserCard({ u, currentUser, onClick }: { u: any, currentUser: any, 
       const sorted = allMsgs.sort((a: any, b: any) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
       if (sorted.length > 0) setLastMsg((sorted[0] as any).text);
 
+      // Notifications: only show if I am the receiver and it's unread
       const unread = allMsgs.filter((m: any) => m.receiverId === currentUser.uid && !m.read);
       setUnreadCount(unread.length);
     });
@@ -350,6 +352,7 @@ export default function LabPage() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [messageText, setMessageText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const postsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -377,6 +380,13 @@ export default function LabPage() {
         .filter((m: any) => m.participants.includes(selectedUser.id))
         .sort((a: any, b: any) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
       setActiveMessages(msgs);
+
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }, 100);
 
       // Mark as read ONLY if I am the receiver
       const unreadDocs = snapshot.docs.filter(d => {
@@ -454,7 +464,6 @@ export default function LabPage() {
     const text = messageText.trim();
     setMessageText("");
 
-    // Save user's message
     await addDoc(collection(db, "messages"), {
       participants: [user.uid, selectedUser.id],
       senderId: user.uid,
@@ -464,7 +473,6 @@ export default function LabPage() {
       timestamp: serverTimestamp()
     });
 
-    // If it's Guru, get AI response
     if (selectedUser.id === GURU_ID) {
       try {
         const res = await explainConcept({ concept: text });
@@ -536,7 +544,7 @@ export default function LabPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-[3rem] kid-card-shadow flex flex-col h-[70vh] animate-in slide-in-from-right-10 overflow-hidden border-4 border-white">
+            <div className="bg-white rounded-[3rem] kid-card-shadow flex flex-col h-[70vh] animate-in slide-in-from-right-10 overflow-hidden border-4 border-white relative">
               <header className="p-6 border-b flex items-center justify-between bg-primary text-white shadow-md">
                 <div className="flex items-center gap-4">
                    <button onClick={() => setSelectedUser(null)} className="hover:scale-110 transition-transform"><ArrowLeft className="w-6 h-6" /></button>
@@ -547,10 +555,10 @@ export default function LabPage() {
                 </div>
                 <ShieldCheck className="w-6 h-6 opacity-40" />
               </header>
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
+              <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 scroll-smooth">
                 {activeMessages.map(m => <div key={m.id} className={cn("flex", m.senderId === user?.uid ? 'justify-end' : 'justify-start')}><div className={cn("max-w-[85%] p-4 rounded-[1.8rem] text-sm font-bold leading-relaxed shadow-sm", m.senderId === user?.uid ? 'bg-primary text-white rounded-br-none' : 'bg-white text-slate-700 rounded-bl-none border border-slate-100')}>{m.text}</div></div>)}
               </div>
-              <div className="p-5 bg-white border-t flex gap-3">
+              <div className="p-5 bg-white border-t flex gap-3 sticky bottom-0 z-10">
                 <Input className="rounded-2xl bg-slate-50 border-none h-14 font-bold px-6 italic" placeholder="Type a message..." value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()}/>
                 <Button size="icon" className="rounded-2xl shrink-0 h-14 w-14 bg-primary shadow-lg shadow-primary/20" onClick={sendMessage}><Send className="w-5 h-5" /></Button>
               </div>

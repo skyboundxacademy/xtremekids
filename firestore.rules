@@ -42,7 +42,7 @@ service cloud.firestore {
 
     match /messages/{messageId} {
       allow create: if isSignedIn();
-      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow read, update: if isSignedIn() && request.auth.uid in resource.data.participants;
     }
 
     match /submissions/{submissionId} {

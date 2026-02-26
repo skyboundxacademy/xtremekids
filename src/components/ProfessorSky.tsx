@@ -49,6 +49,7 @@ export function ProfessorSky() {
 
   return (
     <div className="fixed bottom-24 right-4 z-[100]">
+      {/* Icon is removed if isOpen is true, satisfying the "remove icon until close" requirement */}
       {!isOpen ? (
         <div className="relative group">
           {showGreeting && (
