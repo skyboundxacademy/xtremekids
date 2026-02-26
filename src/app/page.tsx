@@ -22,21 +22,21 @@ export default function Home() {
   const [lessonIndex, setLessonIndex] = useState(0);
   
   const userProfileRef = useMemoFirebase(() => {
-    return user ? doc(db, 'users', user.uid) : null;
-  }, [db, user]);
+    return (user && !isUserLoading) ? doc(db, 'users', user.uid) : null;
+  }, [db, user, isUserLoading]);
   
   const { data: profile, isLoading: isProfileLoading } = useDoc<any>(userProfileRef);
 
   const topLessonsQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || isUserLoading) return null;
     return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'), limit(3));
-  }, [db, user]);
+  }, [db, user, isUserLoading]);
   const { data: topLessons, isLoading: isLessonsLoading } = useCollection<any>(topLessonsQuery);
 
   const leaderboardQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || isUserLoading) return null;
     return query(collection(db, 'users'), orderBy('totalStars', 'desc'), limit(5));
-  }, [db, user]);
+  }, [db, user, isUserLoading]);
   const { data: topUsers, isLoading: isLeaderboardLoading } = useCollection<any>(leaderboardQuery);
 
   useEffect(() => {

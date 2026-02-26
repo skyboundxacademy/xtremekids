@@ -13,45 +13,38 @@ service cloud.firestore {
 
     // Students can read/write their own profile
     match /users/{userId} {
-      allow get, list: if isSignedIn();
-      allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow get, list, write: if isSignedIn();
     }
 
     // Everyone logged in can read lessons
     match /lessons/{lessonId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isSignedIn();
     }
 
     // Everyone logged in can read tasks
     match /tasks/{taskId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isSignedIn();
     }
 
     // Social feed is open to all explorers
     match /posts/{postId} {
-      allow read, create: if isSignedIn();
-      allow update: if isSignedIn(); 
-      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow read, write: if isSignedIn();
       
       match /comments/{commentId} {
-        allow read, create: if isSignedIn();
-        allow update, delete: if isSignedIn();
+        allow read, write: if isSignedIn();
       }
     }
 
-    // Messaging rules: User must be one of the participants
+    // Messaging rules
     match /messages/{messageId} {
-      allow create: if isSignedIn();
-      allow read, update: if isSignedIn() && (request.auth.uid in resource.data.participants);
+      allow read, write: if isSignedIn();
     }
 
-    // Submissions: Students create their own, admins review
+    // Submissions
     match /submissions/{submissionId} {
-      allow create: if isSignedIn();
-      allow get, list: if isSignedIn();
-      allow update, delete: if isAdmin();
+      allow read, write: if isSignedIn();
     }
   }
 }

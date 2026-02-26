@@ -16,10 +16,10 @@ export default function LessonDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const db = useFirestore();
 
-  const lessonRef = useMemoFirebase(() => id ? doc(db, 'lessons', id as string) : null, [db, id]);
+  const lessonRef = useMemoFirebase(() => (id && user) ? doc(db, 'lessons', id as string) : null, [db, id, user]);
   const { data: lesson, isLoading: isLessonLoading } = useDoc<any>(lessonRef);
   
   const [currentStep, setCurrentStep] = useState(0);
@@ -42,7 +42,7 @@ export default function LessonDetailPage() {
         const snapshot = await getDocs(q);
         if (!snapshot.empty) setIsCompleted(true);
       } catch (e) {
-        console.error("Status check failed", e);
+        console.warn("Status check failed", e);
       } finally {
         setCheckingCompletion(false);
       }
@@ -75,7 +75,7 @@ export default function LessonDetailPage() {
     }
   };
 
-  if (isLessonLoading || checkingCompletion) {
+  if (isUserLoading || isLessonLoading || checkingCompletion) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white p-10 text-center">
         <Loader2 className="animate-spin text-primary mb-4" />
