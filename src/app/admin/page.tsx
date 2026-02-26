@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -5,15 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Sparkles, CheckCircle, Loader2, Wand2, BookOpen, ClipboardList } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Sparkles, CheckCircle, Loader2, Wand2, BookOpen, ClipboardList, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, doc, addDoc, updateDoc, arrayUnion, increment, query, orderBy, serverTimestamp } from "firebase/firestore";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
+import { collection, doc, addDoc, updateDoc, arrayUnion, increment, query, orderBy, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { generateBulkContent } from "@/ai/flows/content-generator";
 
 export default function AdminPage() {
@@ -22,8 +22,14 @@ export default function AdminPage() {
   const db = useFirestore();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [idea, setIdea] = useState("");
+  const [manualLesson, setManualLesson] = useState({
+    title: "",
+    category: "",
+    ageRange: "",
+    imageUrl: "",
+    steps: [""]
+  });
 
   const userProfileRef = useMemoFirebase(() => {
     return user ? doc(db, 'users', user.uid) : null;
@@ -33,18 +39,9 @@ export default function AdminPage() {
   const isAdmin = user?.email === 'goddikrayz@gmail.com' || profile?.role === 'admin';
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted && !isUserLoading && !user) {
-      router.push('/login');
-    }
-    if (mounted && !isUserLoading && user && profile && !isAdmin) {
-      toast({ title: "Access Denied", description: "You are not an admin!", variant: "destructive" });
-      router.push('/');
-    }
-  }, [user, isUserLoading, router, mounted, profile, isAdmin, toast]);
+    if (!isUserLoading && !user) router.push('/login');
+    if (!isUserLoading && user && profile && !isAdmin) router.push('/');
+  }, [user, isUserLoading, router, profile, isAdmin]);
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!user || !isAdmin) return null;
@@ -54,126 +51,159 @@ export default function AdminPage() {
 
   const handleAutoGenerate = async (type: 'lessons' | 'tasks') => {
     setLoading(true);
-    toast({ title: "Summoning Guru AI...", description: `Building 5 ${type} for "${idea || 'everything'}"` });
+    toast({ title: "Guru AI Waking Up...", description: `Creating ${type} for "${idea || 'General Knowledge'}"` });
     try {
       const result = await generateBulkContent({ type, count: 5, idea });
       const items = type === 'lessons' ? result.lessons : result.tasks;
-      
       if (items) {
         for (const item of items) {
-          addDoc(collection(db, type), {
-            ...item,
-            createdAt: serverTimestamp()
-          }).catch(() => {});
+          // Lessons from AI now need to be split into steps for the new interactive UI
+          const finalItem = type === 'lessons' ? { 
+            ...item, 
+            steps: [item.content.substring(0, 500), item.content.substring(500, 1000), item.content.substring(1000)],
+            createdAt: serverTimestamp() 
+          } : { ...item, createdAt: serverTimestamp() };
+          
+          await addDoc(collection(db, type), finalItem);
         }
-        toast({ title: "Academy Updated!", description: `${items.length} academic ${type} generated!` });
-        setIdea("");
+        toast({ title: "Academy Updated!", description: `${items.length} ${type} generated!` });
       }
     } catch (e) {
-      toast({ title: "AI Busy", description: "Gemini is busy, try again in a moment!", variant: "destructive" });
+      toast({ title: "AI Error", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApprove = (submission: any) => {
-    const isLesson = submission.taskTitle.startsWith('Completed Lesson:');
-    const badgeName = isLesson ? submission.taskTitle.replace('Completed Lesson: ', '') : null;
+  const handleManualAdd = async () => {
+    if (!manualLesson.title || !manualLesson.category) return;
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "lessons"), {
+        ...manualLesson,
+        createdAt: serverTimestamp()
+      });
+      toast({ title: "Lesson Published!" });
+      setManualLesson({ title: "", category: "", ageRange: "", imageUrl: "", steps: [""] });
+    } catch (e) {
+      toast({ title: "Failed to publish", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const addStep = () => setManualLesson(prev => ({ ...prev, steps: [...prev.steps, ""] }));
+  const updateStep = (idx: number, val: string) => {
+    const newSteps = [...manualLesson.steps];
+    newSteps[idx] = val;
+    setManualLesson(prev => ({ ...prev, steps: newSteps }));
+  };
+
+  const handleApprove = (submission: any) => {
     updateDoc(doc(db, 'submissions', submission.id), { status: 'approved' })
       .then(() => {
-        if (isLesson && badgeName) {
-          updateDoc(doc(db, 'users', submission.userId), { 
-            badges: arrayUnion(badgeName)
-          }).catch(() => {});
-          toast({ title: "Academic Badge Awarded!" });
+        if (submission.taskTitle.startsWith('Completed Lesson:')) {
+          const badge = submission.taskTitle.replace('Completed Lesson: ', '');
+          updateDoc(doc(db, 'users', submission.userId), { badges: arrayUnion(badge) });
         } else {
-          updateDoc(doc(db, 'users', submission.userId), { 
-            totalStars: increment(submission.points || 0) 
-          }).catch(() => {});
-          toast({ title: "Stars Awarded!" });
+          updateDoc(doc(db, 'users', submission.userId), { totalStars: increment(submission.points || 0) });
         }
-      })
-      .catch(async () => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `submissions/${submission.id}`, operation: 'update' }));
+        toast({ title: "Approved!" });
       });
   };
 
-  const handleReject = (submission: any) => {
-    updateDoc(doc(db, 'submissions', submission.id), { status: 'rejected' })
-      .then(() => toast({ title: "Submission Rejected" }))
-      .catch(() => {});
-  };
-
-  if (!mounted || isUserLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
-  if (!user || !isAdmin) return null;
+  if (isUserLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 max-w-4xl mx-auto pb-24">
-      <header className="flex flex-col gap-6 mb-8">
-        <div className="flex items-center gap-4">
-          <Link href="/"><Button variant="outline" size="icon" className="rounded-full"><ArrowLeft className="w-4 h-4" /></Button></Link>
-          <div>
-            <h1 className="text-2xl font-bold">Academy Control <Sparkles className="text-primary inline-block" /></h1>
-            <p className="text-sm text-muted-foreground">Admin: Tochi Okereke</p>
-          </div>
-        </div>
-
-        <Card className="border-none kid-card-shadow bg-white p-6">
-          <div className="space-y-4">
-            <Label htmlFor="idea" className="font-bold text-primary">Guide the Guru AI</Label>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input 
-                id="idea"
-                placeholder="Topic: Space, Robotics, Cooking, Math..." 
-                value={idea}
-                onChange={(e) => setIdea(e.target.value)}
-                className="rounded-xl h-12 flex-1"
-              />
-              <div className="flex gap-2">
-                <Button onClick={() => handleAutoGenerate('lessons')} disabled={loading} className="bg-primary gap-2 rounded-xl h-12 px-6">
-                  {loading ? <Loader2 className="animate-spin" /> : <BookOpen className="w-4 h-4" />} Create Lessons (5)
-                </Button>
-                <Button onClick={() => handleAutoGenerate('tasks')} disabled={loading} variant="outline" className="gap-2 rounded-xl h-12 px-6">
-                  {loading ? <Loader2 className="animate-spin" /> : <ClipboardList className="w-4 h-4" />} Create Missions (5)
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Card>
+      <header className="flex items-center gap-4 mb-8">
+        <Link href="/profile"><Button variant="outline" size="icon" className="rounded-full"><ArrowLeft className="w-4 h-4" /></Button></Link>
+        <h1 className="text-2xl font-black text-primary uppercase tracking-tighter">Admin Academy Control</h1>
       </header>
 
-      <Tabs defaultValue="marking">
-        <TabsList className="grid w-full grid-cols-2 mb-8 bg-white p-1 rounded-2xl kid-card-shadow h-12">
-          <TabsTrigger value="marking" className="rounded-xl font-bold">Marking Queue ({submissions?.filter(s => s.status === 'pending').length || 0})</TabsTrigger>
-          <TabsTrigger value="content" className="rounded-xl font-bold">Curriculum</TabsTrigger>
+      <Tabs defaultValue="manual">
+        <TabsList className="grid w-full grid-cols-3 mb-8 bg-white p-1 rounded-2xl kid-card-shadow h-14">
+          <TabsTrigger value="manual" className="rounded-xl font-bold">Manual Add</TabsTrigger>
+          <TabsTrigger value="ai" className="rounded-xl font-bold">Guru AI</TabsTrigger>
+          <TabsTrigger value="marking" className="rounded-xl font-bold">Marking</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="manual">
+          <Card className="border-none kid-card-shadow bg-white p-8 rounded-3xl space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="font-bold">Lesson Title</Label>
+                <Input placeholder="E.g. Space Robots" value={manualLesson.title} onChange={e => setManualLesson(p => ({...p, title: e.target.value}))} />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">Category</Label>
+                <Input placeholder="E.g. Tech" value={manualLesson.category} onChange={e => setManualLesson(p => ({...p, category: e.target.value}))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="font-bold">Age Range</Label>
+                <Input placeholder="E.g. 8-12" value={manualLesson.ageRange} onChange={e => setManualLesson(p => ({...p, ageRange: e.target.value}))} />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">Image URL (or Unsplash Keywords)</Label>
+                <Input placeholder="E.g. robots" value={manualLesson.imageUrl} onChange={e => setManualLesson(p => ({...p, imageUrl: e.target.value}))} />
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <Label className="font-bold flex items-center justify-between">
+                Knowledge Steps (Content chunks)
+                <Button onClick={addStep} size="sm" variant="outline" className="h-8 rounded-xl"><Plus className="w-4 h-4 mr-1"/> Add Step</Button>
+              </Label>
+              {manualLesson.steps.map((step, i) => (
+                <Textarea 
+                  key={i} 
+                  placeholder={`Content Step ${i+1}`} 
+                  value={step} 
+                  onChange={e => updateStep(i, e.target.value)}
+                  className="rounded-xl min-h-32"
+                />
+              ))}
+            </div>
+
+            <Button onClick={handleManualAdd} disabled={loading} className="w-full bg-primary h-14 rounded-2xl font-bold text-lg">
+              {loading ? <Loader2 className="animate-spin" /> : "Publish Lesson Now"}
+            </Button>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ai">
+          <Card className="border-none kid-card-shadow bg-white p-8 rounded-3xl text-center">
+            <Sparkles className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
+            <h3 className="text-xl font-bold text-primary mb-2">Guru AI Content Engine</h3>
+            <p className="text-sm text-muted-foreground mb-8">Guide the AI to build your curriculum for you!</p>
+            <Input 
+              placeholder="Enter a topic (e.g. History of Rome)..." 
+              className="h-14 rounded-2xl mb-6 text-center" 
+              value={idea}
+              onChange={e => setIdea(e.target.value)}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <Button onClick={() => handleAutoGenerate('lessons')} disabled={loading} className="h-14 bg-primary rounded-2xl font-bold">AI Lessons (5)</Button>
+              <Button onClick={() => handleAutoGenerate('tasks')} disabled={loading} variant="outline" className="h-14 rounded-2xl font-bold">AI Tasks (5)</Button>
+            </div>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="marking" className="space-y-4">
           {submissions?.filter(s => s.status === 'pending').map((sub) => (
-            <Card key={sub.id} className="border-none kid-card-shadow bg-white">
-              <CardContent className="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="space-y-1">
-                  <h3 className="font-bold text-lg text-primary">{sub.userName}</h3>
-                  <p className="text-sm font-medium">{sub.taskTitle}</p>
-                </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Button className="flex-1 bg-green-500 font-bold" onClick={() => handleApprove(sub)}>Approve</Button>
-                  <Button variant="outline" className="flex-1 text-red-500" onClick={() => handleReject(sub)}>Reject</Button>
-                </div>
-              </CardContent>
+            <Card key={sub.id} className="border-none kid-card-shadow bg-white rounded-3xl p-6 flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-primary">{sub.userName}</h4>
+                <p className="text-xs font-medium">{sub.taskTitle}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={() => handleApprove(sub)} className="bg-green-500 rounded-xl h-10 font-bold">Approve</Button>
+                <Button variant="outline" className="text-red-500 rounded-xl h-10 border-red-100" onClick={() => deleteDoc(doc(db, "submissions", sub.id))}>Reject</Button>
+              </div>
             </Card>
           ))}
-          {submissions?.filter(s => s.status === 'pending').length === 0 && (
-            <div className="text-center py-24 opacity-30">
-              <CheckCircle className="w-16 h-16 mx-auto mb-4" />
-              <p className="text-xl font-bold">All Marked!</p>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="content" className="text-center py-10 opacity-50 italic">
-          Curriculum is managed via the Guru AI buttons above.
         </TabsContent>
       </Tabs>
     </main>

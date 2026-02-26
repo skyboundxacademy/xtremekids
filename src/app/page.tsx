@@ -4,7 +4,7 @@
 import { BottomNav } from "@/components/BottomNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList, Loader2, ArrowRight } from "lucide-react";
+import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -24,150 +24,94 @@ export default function Home() {
   
   const { data: profile } = useDoc<any>(userProfileRef);
 
-  const featuredQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'), limit(1));
-  }, [db, user]);
-
-  const { data: featuredLessons, isLoading: isFeaturedLoading } = useCollection<any>(featuredQuery);
-  const featured = featuredLessons?.[0];
+  const leaderboardQuery = useMemoFirebase(() => {
+    return query(collection(db, 'users'), orderBy('totalStars', 'desc'), limit(5));
+  }, [db]);
+  const { data: topUsers } = useCollection<any>(leaderboardQuery);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted && !isUserLoading && !user) {
-      router.push('/login');
+    if (!isUserLoading && user && profile && !profile.onboardingCompleted) {
+      router.push("/onboarding");
     }
-  }, [user, isUserLoading, router, mounted]);
+  }, [user, isUserLoading, profile, router]);
 
   if (!mounted || isUserLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Sparkles className="w-12 h-12 text-primary animate-spin" />
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>;
   }
 
   if (!user) return null;
 
   return (
-    <main className="min-h-screen pb-24 px-6 pt-12 max-w-md mx-auto">
-      <header className="flex justify-between items-center mb-10">
+    <main className="min-h-screen pb-32 px-6 pt-12 max-w-md mx-auto">
+      <header className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-            Hi, {profile?.displayName || user?.displayName || 'Explorer'}! <Sparkles className="text-secondary animate-pulse" />
+          <h1 className="text-3xl font-black text-primary leading-tight">
+            Skybound <Sparkles className="inline text-secondary animate-pulse" />
           </h1>
-          <p className="text-muted-foreground font-medium">Ready for an adventure today?</p>
+          <p className="text-muted-foreground font-bold text-xs uppercase tracking-widest">Hi, {profile?.displayName || "Explorer"}</p>
         </div>
-        <div className="bg-white p-2 rounded-full shadow-lg border-2 border-primary/10">
-          <Link href="/profile">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/20 relative">
-              <Image 
-                src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} 
-                alt="Avatar" 
-                fill 
-                className="object-cover"
-              />
-            </div>
-          </Link>
-        </div>
+        <Link href="/profile" className="w-12 h-12 rounded-2xl bg-primary/10 border-2 border-primary/20 overflow-hidden relative">
+          <Image src={user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`} alt="Avatar" fill className="object-cover" />
+        </Link>
       </header>
 
-      <Card className="bg-white mb-8 border-none kid-card-shadow relative overflow-hidden">
-        <div className="diary-tape bg-primary/30" />
-        <CardContent className="p-6 flex justify-around items-center">
-          <div className="flex flex-col items-center">
-            <div className="bg-secondary/20 p-3 rounded-2xl mb-2">
-              <Star className="text-secondary fill-secondary" />
-            </div>
-            <span className="text-lg font-bold">{profile?.totalStars || 0}</span>
-            <span className="text-xs text-muted-foreground uppercase font-semibold">Stars</span>
+      <section className="grid grid-cols-2 gap-4 mb-8">
+        <Card className="bg-primary/5 border-none kid-card-shadow rounded-3xl p-6 text-center">
+          <div className="bg-primary/20 w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center">
+            <Star className="text-primary fill-primary w-5 h-5" />
           </div>
-          <div className="w-px h-12 bg-primary/10" />
-          <div className="flex flex-col items-center">
-            <div className="bg-primary/20 p-3 rounded-2xl mb-2">
-              <Trophy className="text-primary" />
-            </div>
-            <span className="text-lg font-bold">{profile?.badges?.length || 0}</span>
-            <span className="text-xs text-muted-foreground uppercase font-semibold">Badges</span>
+          <p className="text-2xl font-black text-primary">{profile?.totalStars || 0}</p>
+          <p className="text-[10px] font-bold text-primary/60 uppercase">Stars</p>
+        </Card>
+        <Card className="bg-secondary/5 border-none kid-card-shadow rounded-3xl p-6 text-center">
+          <div className="bg-secondary/20 w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center">
+            <Trophy className="text-secondary w-5 h-5" />
           </div>
-        </CardContent>
-      </Card>
-
-      <section className="mb-8">
-        <div className="flex justify-between items-end mb-4">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Cloud className="text-primary/40 fill-primary/10" /> Top Pick
-          </h2>
-          <Link href="/academy" className="text-xs font-bold text-primary">See All</Link>
-        </div>
-        
-        {isFeaturedLoading ? (
-          <div className="h-48 rounded-3xl bg-white/40 animate-pulse flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-primary animate-spin" />
-          </div>
-        ) : featured ? (
-          <Link href={`/academy/${featured.id}`}>
-            <div className="group relative rounded-3xl overflow-hidden aspect-[16/10] kid-card-shadow transition-transform active:scale-95">
-              <Image 
-                src={featured.imageUrl || `https://picsum.photos/seed/${featured.title}/800/600`} 
-                alt={featured.title} 
-                fill 
-                className="object-cover group-hover:scale-110 transition-transform duration-500"
-                unoptimized
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent flex flex-col justify-end p-6">
-                <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase py-1 px-3 rounded-full w-fit mb-2">
-                   {featured.category}
-                </span>
-                <h3 className="text-white text-2xl font-bold line-clamp-2">{featured.title}</h3>
-              </div>
-            </div>
-          </Link>
-        ) : (
-          <div className="h-48 border-2 border-dashed rounded-3xl flex items-center justify-center opacity-40">
-            <p className="text-sm font-bold">Waiting for lessons...</p>
-          </div>
-        )}
+          <p className="text-2xl font-black text-secondary">{profile?.badges?.length || 0}</p>
+          <p className="text-[10px] font-bold text-secondary/60 uppercase">Badges</p>
+        </Card>
       </section>
 
       <section className="mb-8">
-        <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
-          <Trophy className="text-yellow-500" /> Star Hall
+        <h2 className="text-xl font-black text-primary mb-4 flex items-center gap-2">
+          Star Hall <Trophy className="text-yellow-500 w-5 h-5" />
         </h2>
-        <Button asChild variant="outline" className="w-full h-20 rounded-3xl bg-white border-2 border-yellow-500/10 kid-card-shadow hover:bg-yellow-500/5 group flex justify-between px-6">
-          <Link href="/leaderboard">
-            <div className="flex items-center gap-3">
-               <div className="bg-yellow-500/10 p-2 rounded-xl group-hover:scale-110 transition-transform">
-                <Trophy className="text-yellow-500" />
+        <Card className="border-none kid-card-shadow bg-white rounded-[2rem] overflow-hidden">
+          <div className="p-6 space-y-4">
+            {topUsers?.map((u, i) => (
+              <div key={u.id} className="flex items-center justify-between group">
+                <div className="flex items-center gap-3">
+                  <span className="font-black text-primary/20 w-4">#{i+1}</span>
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 relative overflow-hidden">
+                    <Image src={u.photoURL || `https://picsum.photos/seed/${u.id}/50/50`} alt={u.displayName} fill className="object-cover" />
+                  </div>
+                  <span className="font-bold text-sm text-slate-700">{u.displayName}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-black text-secondary">{u.totalStars}</span>
+                  <Star className="w-3 h-3 fill-secondary text-secondary" />
+                </div>
               </div>
-              <div className="text-left">
-                <span className="font-bold text-primary">Academy Rankings</span>
-                <p className="text-[10px] text-muted-foreground font-medium">Who is the top explorer?</p>
-              </div>
-            </div>
-            <ArrowRight className="text-primary w-5 h-5" />
-          </Link>
-        </Button>
+            ))}
+          </div>
+          <Button asChild variant="ghost" className="w-full h-12 bg-primary/5 rounded-none text-primary font-bold border-t border-primary/5">
+            <Link href="/leaderboard">Full Rankings <ArrowRight className="w-4 h-4 ml-2" /></Link>
+          </Button>
+        </Card>
       </section>
 
       <section className="grid grid-cols-2 gap-4">
-        <Button asChild variant="outline" className="h-24 flex flex-col gap-1 rounded-3xl bg-white border-2 border-primary/5 kid-card-shadow hover:bg-primary/5 group">
-          <Link href="/lab">
-            <div className="bg-primary/10 p-2 rounded-xl group-hover:rotate-12 transition-transform">
-              <FlaskConical className="text-primary" />
-            </div>
-            <span className="font-bold text-sm">Magic Lab</span>
+        <Button asChild className="h-28 flex flex-col gap-2 rounded-3xl bg-white border-none kid-card-shadow hover:bg-slate-50 transition-colors">
+          <Link href="/academy">
+            <BookOpen className="w-6 h-6 text-primary" />
+            <span className="text-primary font-bold text-sm">Academy</span>
           </Link>
         </Button>
-        <Button asChild variant="outline" className="h-24 flex flex-col gap-1 rounded-3xl bg-white border-2 border-secondary/5 kid-card-shadow hover:bg-secondary/5 group">
+        <Button asChild className="h-28 flex flex-col gap-2 rounded-3xl bg-white border-none kid-card-shadow hover:bg-slate-50 transition-colors">
           <Link href="/tasks">
-            <div className="bg-secondary/10 p-2 rounded-xl group-hover:-rotate-12 transition-transform">
-              <ClipboardList className="text-secondary" />
-            </div>
-            <span className="font-bold text-sm">Daily Tasks</span>
+            <ClipboardList className="w-6 h-6 text-secondary" />
+            <span className="text-secondary font-bold text-sm">Tasks</span>
           </Link>
         </Button>
       </section>

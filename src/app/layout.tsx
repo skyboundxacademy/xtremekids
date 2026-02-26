@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from "@/firebase";
 import { FirebaseErrorListener } from "@/components/FirebaseErrorListener";
+import { ProfessorSky } from "@/components/ProfessorSky";
 
 export const metadata: Metadata = {
   title: 'SkyboundKids Academy',
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className="font-body antialiased selection:bg-secondary/30">
         <FirebaseClientProvider>
           <FirebaseErrorListener />
+          <ProfessorSky />
           {children}
           <Toaster />
         </FirebaseClientProvider>

@@ -1,16 +1,15 @@
+
 "use client"
 
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Sparkles, ArrowRight, Loader2, CheckCircle2, Award } from "lucide-react";
+import { ChevronLeft, Sparkles, ArrowRight, ArrowLeft, Loader2, CheckCircle2, Award } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { generateEncouragement } from "@/ai/flows/ai-encouragement";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, serverTimestamp, doc, query, where, getDocs } from "firebase/firestore";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
+import { Progress } from "@/components/ui/progress";
 
 export default function LessonDetailPage() {
   const { id } = useParams();
@@ -25,13 +24,13 @@ export default function LessonDetailPage() {
 
   const { data: lesson, isLoading: isLessonLoading } = useDoc<any>(lessonRef);
   
+  const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [checkingCompletion, setCheckingCompletion] = useState(true);
 
   useEffect(() => {
     if (!user || !lesson) return;
-    
     const checkStatus = async () => {
       const q = query(
         collection(db, "submissions"),
@@ -39,12 +38,9 @@ export default function LessonDetailPage() {
         where("taskTitle", "==", `Completed Lesson: ${lesson.title}`)
       );
       const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        setIsCompleted(true);
-      }
+      if (!snapshot.empty) setIsCompleted(true);
       setCheckingCompletion(false);
     };
-
     checkStatus();
   }, [user, lesson, db]);
 
@@ -62,30 +58,11 @@ export default function LessonDetailPage() {
       timestamp: serverTimestamp()
     };
 
-    // Non-blocking Firestore write
     addDoc(collection(db, "submissions"), submissionData)
-      .then(async () => {
-        // AI Encouragement is separate and asynchronous
-        try {
-          await generateEncouragement({
-            childName: user.displayName || "Explorer",
-            contentType: "lesson",
-            contentTitle: lesson.title
-          });
-        } catch (e) {
-          // AI errors shouldn't break the lesson flow
-        }
-        
+      .then(() => {
         toast({ title: "Lesson Finished!", description: "Professor Sky will award your badge soon!" });
         setIsCompleted(true);
         router.push('/academy');
-      })
-      .catch(async () => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
-          path: 'submissions', 
-          operation: 'create', 
-          requestResourceData: submissionData 
-        }));
       })
       .finally(() => setIsSubmitting(false));
   };
@@ -93,13 +70,16 @@ export default function LessonDetailPage() {
   if (isLessonLoading || checkingCompletion) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
   if (!lesson) return <div className="p-10 text-center font-bold">Lesson not found</div>;
 
+  const steps = lesson.steps || [lesson.content]; // Fallback if no steps array
+  const progress = ((currentStep + 1) / steps.length) * 100;
+
   return (
-    <main className="min-h-screen bg-white max-w-md mx-auto relative pb-24">
+    <main className="min-h-screen bg-white max-w-md mx-auto relative pb-32">
       <button onClick={() => router.back()} className="fixed top-6 left-6 z-50 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md shadow-lg flex items-center justify-center text-primary">
         <ChevronLeft className="w-6 h-6" />
       </button>
 
-      <div className="relative h-72 w-full">
+      <div className="relative h-60 w-full">
         <Image 
           src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.title}/800/600`} 
           alt={lesson.title} 
@@ -108,33 +88,46 @@ export default function LessonDetailPage() {
           unoptimized
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
-          <h1 className="text-3xl font-black text-white leading-tight">{lesson.title}</h1>
+          <h1 className="text-2xl font-black text-white">{lesson.title}</h1>
         </div>
       </div>
 
-      <div className="px-6 py-8">
-        <div className="flex items-center gap-2 mb-8 bg-secondary/10 p-4 rounded-2xl border-2 border-dashed border-secondary/20">
-          <Award className="text-secondary w-6 h-6" />
-          <div>
-            <p className="text-[10px] font-bold uppercase text-secondary">Reward</p>
-            <p className="font-bold text-sm">Earn the "{lesson.title}" Badge</p>
-          </div>
+      <div className="px-6 py-6">
+        <div className="mb-8">
+           <div className="flex justify-between items-center mb-2">
+            <span className="text-[10px] font-bold text-primary uppercase">Content {currentStep + 1} of {steps.length}</span>
+            <span className="text-[10px] font-bold text-primary">{Math.round(progress)}%</span>
+           </div>
+           <Progress value={progress} className="h-2 rounded-full bg-primary/10" />
         </div>
 
-        {/* LONG FORM ACADEMIC CONTENT */}
-        <div className="prose prose-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap">
-          {lesson.content}
+        <div className="prose prose-sm font-medium leading-relaxed text-slate-700 whitespace-pre-wrap min-h-[300px] animate-in fade-in slide-in-from-right-2">
+          {steps[currentStep]}
         </div>
 
-        <div className="mt-12">
-          {isCompleted ? (
-            <div className="w-full flex items-center justify-center gap-2 h-14 bg-green-500/10 text-green-600 rounded-2xl font-bold text-lg border-2 border-green-500/20">
-              <CheckCircle2 className="w-6 h-6" /> Mission Already Done!
-            </div>
-          ) : (
-            <Button onClick={handleFinish} disabled={isSubmitting} className="w-full rounded-2xl h-14 bg-primary font-bold text-lg kid-card-shadow">
-              {isSubmitting ? "Sending..." : "Finish & Earn Badge"} <ArrowRight className="ml-2" />
+        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t p-6 flex gap-4 max-w-md mx-auto">
+          {currentStep > 0 && (
+            <Button onClick={() => setCurrentStep(prev => prev - 1)} variant="outline" className="flex-1 rounded-2xl h-14 font-bold border-primary/20 text-primary">
+              <ArrowLeft className="mr-2" /> Back
             </Button>
+          )}
+          
+          {currentStep < steps.length - 1 ? (
+            <Button onClick={() => setCurrentStep(prev => prev + 1)} className="flex-1 rounded-2xl h-14 bg-primary font-bold text-lg kid-card-shadow">
+              Next Step <ArrowRight className="ml-2" />
+            </Button>
+          ) : (
+            <div className="flex-1">
+              {isCompleted ? (
+                <div className="w-full flex items-center justify-center gap-2 h-14 bg-green-500/10 text-green-600 rounded-2xl font-bold border-2 border-green-500/20">
+                  <CheckCircle2 className="w-6 h-6" /> Already Done!
+                </div>
+              ) : (
+                <Button onClick={handleFinish} disabled={isSubmitting} className="w-full rounded-2xl h-14 bg-primary font-bold text-lg kid-card-shadow">
+                  {isSubmitting ? "Finishing..." : "Complete & Earn"} <Award className="ml-2" />
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>

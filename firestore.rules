@@ -3,8 +3,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() { return request.auth != null; }
-    
-    // Tochi: You are the master admin. 
     function isAdmin() { 
       return isSignedIn() && (
         request.auth.token.email == 'goddikrayz@gmail.com' ||
@@ -14,7 +12,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isSignedIn();
-      allow list: if isSignedIn(); // Needed for leaderboard
+      allow list: if isSignedIn();
       allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
     }
 
@@ -23,9 +21,24 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /quizzes/{quizId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     match /tasks/{taskId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
+    }
+
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /messages/{messageId} {
+      allow read, write: if isSignedIn() && (request.auth.uid == request.resource.data.senderId || request.auth.uid == request.resource.data.receiverId);
     }
 
     match /submissions/{submissionId} {
