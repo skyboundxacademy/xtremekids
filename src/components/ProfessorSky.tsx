@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -22,7 +23,7 @@ export function ProfessorSky() {
       const res = await explainConcept({ concept: query });
       setResponse(res.explanation);
     } catch (e) {
-      setResponse("I'm thinking really hard right now! Try again in a second!");
+      setResponse("My cosmic brain is a bit fuzzy! Try again!");
     } finally {
       setLoading(false);
     }
@@ -31,65 +32,59 @@ export function ProfessorSky() {
   if (!user) return null;
 
   return (
-    <div className="fixed bottom-24 right-6 z-[100]">
+    <div className="fixed bottom-24 right-4 z-[100]">
       {!isOpen ? (
         <button 
           onClick={() => setIsOpen(true)}
-          className="w-20 h-20 hover:scale-110 transition-transform active:scale-95 flex items-center justify-center p-0 bg-transparent border-none drop-shadow-2xl"
+          className="w-20 h-20 hover:scale-110 transition-transform active:scale-95 flex items-center justify-center p-0 bg-transparent border-none"
         >
-          {/* Frameless Purple Labubu / Character SVG */}
-          <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Ears */}
-            <ellipse cx="35" cy="25" rx="10" ry="18" fill="#A855F7" />
-            <ellipse cx="65" cy="25" rx="10" ry="18" fill="#A855F7" />
-            <ellipse cx="35" cy="28" rx="5" ry="10" fill="#E9D5FF" />
-            <ellipse cx="65" cy="28" rx="5" ry="10" fill="#E9D5FF" />
-            {/* Head/Body */}
-            <path d="M20 60C20 40 30 30 50 30C70 30 80 40 80 60C80 85 70 95 50 95C30 95 20 85 20 60Z" fill="#A855F7" />
-            {/* Face */}
+          {/* Frameless Purple Labubu character SVG */}
+          <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
+            {/* Long Ears */}
+            <ellipse cx="35" cy="20" rx="8" ry="20" fill="#9333ea" />
+            <ellipse cx="65" cy="20" rx="8" ry="20" fill="#9333ea" />
+            <ellipse cx="35" cy="22" rx="4" ry="12" fill="#e9d5ff" />
+            <ellipse cx="65" cy="22" rx="4" ry="12" fill="#e9d5ff" />
+            {/* Body */}
+            <path d="M20 60C20 40 30 30 50 30C70 30 80 40 80 60C80 85 70 95 50 95C30 95 20 85 20 60Z" fill="#9333ea" />
+            {/* Face Mask */}
             <path d="M30 65C30 50 40 45 50 45C60 45 70 50 70 65C70 80 60 85 50 85C40 85 30 80 30 65Z" fill="#FDF4FF" />
-            {/* Eyes */}
-            <circle cx="42" cy="62" r="3.5" fill="#4A044E" />
-            <circle cx="58" cy="62" r="3.5" fill="#4A044E" />
-            {/* Mouth */}
-            <path d="M45 72Q50 77 55 72" stroke="#4A044E" strokeWidth="2.5" strokeLinecap="round" />
-            {/* Sparkles */}
-            <path d="M15 30L18 33M18 30L15 33" stroke="#F472B6" strokeWidth="2" strokeLinecap="round" />
-            <path d="M85 45L88 48M88 45L85 48" stroke="#D946EF" strokeWidth="2" strokeLinecap="round" />
+            {/* Big Expressive Eyes */}
+            <circle cx="42" cy="62" r="4" fill="#1e1b4b" />
+            <circle cx="58" cy="62" r="4" fill="#1e1b4b" />
+            <circle cx="41" cy="61" r="1.5" fill="white" />
+            <circle cx="57" cy="61" r="1.5" fill="white" />
+            {/* Bouncy Mouth */}
+            <path d="M44 74Q50 79 56 74" stroke="#1e1b4b" strokeWidth="3" strokeLinecap="round" />
+            {/* Sparkle Details */}
+            <path d="M12 35L16 39M16 35L12 39" stroke="#d946ef" strokeWidth="2" strokeLinecap="round" />
+            <path d="M84 40L88 44M88 40L84 44" stroke="#c026d3" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
       ) : (
-        <Card className="w-80 border-none kid-card-shadow overflow-hidden bg-white/95 backdrop-blur-md animate-in zoom-in-95 slide-in-from-bottom-5 rounded-[2.5rem]">
-          <CardHeader className="bg-gradient-to-r from-purple-600 to-fuchsia-600 p-4 flex flex-row items-center justify-between text-white">
+        <Card className="w-80 border-none kid-card-shadow overflow-hidden bg-white/95 backdrop-blur-md animate-in zoom-in-95 slide-in-from-bottom-5 rounded-[2.5rem] border-4 border-purple-100">
+          <CardHeader className="bg-purple-600 p-4 flex flex-row items-center justify-between text-white">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-yellow-300" />
-              <CardTitle className="text-sm font-black uppercase tracking-widest">Professor Sky</CardTitle>
+              <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
+              <CardTitle className="text-xs font-black uppercase tracking-widest italic">Professor Sky</CardTitle>
             </div>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-6 w-6" onClick={() => setIsOpen(false)}>
-              <X className="w-4 h-4" />
-            </Button>
+            <button className="text-white/60 hover:text-white" onClick={() => setIsOpen(false)}>
+              <X className="w-5 h-5" />
+            </button>
           </CardHeader>
           <CardContent className="p-4">
-            <div className="max-h-60 overflow-y-auto mb-4 space-y-2">
-              {response ? (
-                <div className="bg-purple-50 p-4 rounded-2xl text-[13px] font-semibold leading-relaxed text-purple-900 border border-purple-100 animate-in fade-in slide-in-from-bottom-2">
-                  "{response}"
-                </div>
-              ) : (
-                <div className="text-purple-300 text-[10px] font-bold uppercase text-center py-8">
-                  I'm ready to explain anything!
-                </div>
-              )}
+            <div className="max-h-60 overflow-y-auto mb-4 p-4 bg-purple-50 rounded-2xl text-[13px] font-bold leading-relaxed text-purple-900 min-h-[100px]">
+              {response || "I'm ready to explain the mysteries of the universe! Ask me anything!"}
             </div>
             <div className="flex gap-2">
               <Input 
-                className="h-12 text-xs rounded-2xl border-purple-100 bg-slate-50" 
-                placeholder="Ask your guru..." 
+                className="h-12 text-xs rounded-2xl border-none bg-slate-100 italic" 
+                placeholder="Talk to your guru..." 
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
               />
-              <Button onClick={handleAsk} disabled={loading} size="icon" className="h-12 w-12 shrink-0 rounded-2xl bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-200">
+              <Button onClick={handleAsk} disabled={loading} size="icon" className="h-12 w-12 shrink-0 rounded-2xl bg-purple-600 shadow-lg shadow-purple-200">
                 {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>

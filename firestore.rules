@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -28,10 +29,9 @@ service cloud.firestore {
     match /posts/{postId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn(); // Crucial for likes and repost increments
+      allow update: if isSignedIn(); 
       allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       
-      // Subcollection for comments - explicitly allow create/read
       match /comments/{commentId} {
         allow read: if isSignedIn();
         allow create: if isSignedIn();
@@ -41,7 +41,7 @@ service cloud.firestore {
     }
 
     match /messages/{messageId} {
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.senderId;
+      allow create: if isSignedIn();
       allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
     }
 
