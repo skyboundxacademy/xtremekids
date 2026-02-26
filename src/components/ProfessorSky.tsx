@@ -9,6 +9,9 @@ import { Sparkles, X, Send, Loader2 } from "lucide-react";
 import { explainConcept } from "@/ai/flows/concept-explainer";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
+import Image from "next/image";
+
+const GURU_AVATAR = "https://picsum.photos/seed/labubu-purple/400/400";
 
 export function ProfessorSky() {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,19 +63,16 @@ export function ProfessorSky() {
             onClick={() => { setIsOpen(true); setShowGreeting(false); }}
             className="w-20 h-20 hover:scale-110 transition-transform active:scale-95 flex items-center justify-center p-0 bg-transparent border-none"
           >
-            <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
-              <ellipse cx="35" cy="20" rx="8" ry="20" fill="#9333ea" />
-              <ellipse cx="65" cy="20" rx="8" ry="20" fill="#9333ea" />
-              <ellipse cx="35" cy="22" rx="4" ry="12" fill="#e9d5ff" />
-              <ellipse cx="65" cy="22" rx="4" ry="12" fill="#e9d5ff" />
-              <path d="M20 60C20 40 30 30 50 30C70 30 80 40 80 60C80 85 70 95 50 95C30 95 20 85 20 60Z" fill="#9333ea" />
-              <path d="M30 65C30 50 40 45 50 45C60 45 70 50 70 65C70 80 60 85 50 85C40 85 30 80 30 65Z" fill="#FDF4FF" />
-              <circle cx="42" cy="62" r="4" fill="#1e1b4b" />
-              <circle cx="58" cy="62" r="4" fill="#1e1b4b" />
-              <circle cx="41" cy="61" r="1.5" fill="white" />
-              <circle cx="57" cy="61" r="1.5" fill="white" />
-              <path d="M44 74Q50 79 56 74" stroke="#1e1b4b" strokeWidth="3" strokeLinecap="round" />
-            </svg>
+            <div className="relative w-20 h-20 drop-shadow-2xl">
+              <Image 
+                src={GURU_AVATAR} 
+                alt="Guru" 
+                fill 
+                className="object-cover rounded-full border-4 border-white" 
+                unoptimized 
+              />
+              <Sparkles className="absolute -top-1 -right-1 w-6 h-6 text-yellow-400 animate-pulse" />
+            </div>
           </button>
         </div>
       ) : (

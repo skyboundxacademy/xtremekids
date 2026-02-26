@@ -16,6 +16,9 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const GURU_ID = "guru-ai";
+const GURU_AVATAR = "https://picsum.photos/seed/labubu-purple/400/400"; // Consistent Guru Avatar
+
 function HighlightText({ text }: { text: string }) {
   if (!text) return null;
   const parts = text.split(/(\s+)/);
@@ -91,9 +94,9 @@ function PostComments({ postId }: { postId: string }) {
       try {
         const res = await explainConcept({ concept: question });
         addDoc(collection(db, `posts/${postId}/comments`), {
-          userId: "guru-ai",
+          userId: GURU_ID,
           userName: "Professor Sky",
-          userPhoto: "https://picsum.photos/seed/guru/200/200",
+          userPhoto: GURU_AVATAR,
           text: `@${user.displayName} ${res.explanation}`,
           parentId: docRef.id,
           likes: [],
@@ -361,6 +364,7 @@ export default function LabPage() {
   const { data: allUsers } = useCollection<any>(usersQuery);
 
   const [activeMessages, setActiveMessages] = useState<any[]>([]);
+
   useEffect(() => {
     if (!user || !selectedUser) return;
     const q = query(
@@ -374,6 +378,7 @@ export default function LabPage() {
         .sort((a: any, b: any) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
       setActiveMessages(msgs);
 
+      // Mark as read ONLY if I am the receiver
       const unreadDocs = snapshot.docs.filter(d => {
         const data = d.data();
         return data.participants.includes(selectedUser.id) && data.receiverId === user.uid && !data.read;
@@ -411,9 +416,9 @@ export default function LabPage() {
           try {
             const res = await explainConcept({ concept: question });
             addDoc(collection(db, "posts"), {
-              userId: "guru-ai",
+              userId: GURU_ID,
               userName: "Professor Sky",
-              userPhoto: "https://picsum.photos/seed/guru/200/200",
+              userPhoto: GURU_AVATAR,
               content: postContent,
               isRepost: true,
               repostCaption: res.explanation,
@@ -432,7 +437,57 @@ export default function LabPage() {
       .finally(() => { setPostContent(""); setIsPosting(false); });
   };
 
-  const filteredUsers = allUsers?.filter(u => u.id !== user?.uid && (u.displayName?.toLowerCase().includes(searchQuery.toLowerCase()))) || [];
+  const guruUser = {
+    id: GURU_ID,
+    displayName: "Professor Sky",
+    photoURL: GURU_AVATAR,
+    totalStars: 1000000,
+  };
+
+  const filteredUsers = [
+    guruUser,
+    ...(allUsers?.filter(u => u.id !== user?.uid && (u.displayName?.toLowerCase().includes(searchQuery.toLowerCase()))) || [])
+  ];
+
+  const sendMessage = async () => {
+    if (!user || !selectedUser || !messageText) return;
+    const text = messageText.trim();
+    setMessageText("");
+
+    // Save user's message
+    await addDoc(collection(db, "messages"), {
+      participants: [user.uid, selectedUser.id],
+      senderId: user.uid,
+      receiverId: selectedUser.id,
+      text: text,
+      read: selectedUser.id === GURU_ID, // Guru reads instantly
+      timestamp: serverTimestamp()
+    });
+
+    // If it's Guru, get AI response
+    if (selectedUser.id === GURU_ID) {
+      try {
+        const res = await explainConcept({ concept: text });
+        addDoc(collection(db, "messages"), {
+          participants: [user.uid, GURU_ID],
+          senderId: GURU_ID,
+          receiverId: user.uid,
+          text: res.explanation,
+          read: false,
+          timestamp: serverTimestamp()
+        });
+      } catch (e) {
+        addDoc(collection(db, "messages"), {
+          participants: [user.uid, GURU_ID],
+          senderId: GURU_ID,
+          receiverId: user.uid,
+          text: "My cosmic circuits are fuzzy! Try asking again!",
+          read: false,
+          timestamp: serverTimestamp()
+        });
+      }
+    }
+  };
 
   return (
     <main className="min-h-screen pb-32 px-4 pt-12 max-w-md mx-auto bg-slate-50/50">
@@ -474,7 +529,7 @@ export default function LabPage() {
             <div className="space-y-6 animate-in fade-in duration-500">
               <div className="relative mb-8">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input className="pl-12 rounded-[2rem] border-none bg-white kid-card-shadow h-16 text-base font-medium italic" placeholder="Find an Explorer to chat..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
+                <Input className="pl-12 rounded-[2rem] border-none bg-white kid-card-shadow h-16 text-base font-medium italic" placeholder="Find an Explorer or Guru..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
               </div>
               <div className="grid gap-4">
                 {filteredUsers.map(u => <InboxUserCard key={u.id} u={u} currentUser={user} onClick={() => setSelectedUser(u)} />)}
@@ -488,7 +543,7 @@ export default function LabPage() {
                    <div className="w-12 h-12 rounded-2xl bg-white/20 relative overflow-hidden border border-white/30">
                       <Image src={selectedUser.photoURL || `https://picsum.photos/seed/${selectedUser.id}/100/100`} alt="p" fill className="object-cover" unoptimized />
                    </div>
-                   <div><h4 className="font-black text-sm leading-tight">{selectedUser.displayName}</h4><span className="text-[9px] font-bold opacity-60">Online Academy Chat</span></div>
+                   <div><h4 className="font-black text-sm leading-tight">{selectedUser.displayName}</h4><span className="text-[9px] font-bold opacity-60">{selectedUser.id === GURU_ID ? "AI Mentor" : "Online Academy Chat"}</span></div>
                 </div>
                 <ShieldCheck className="w-6 h-6 opacity-40" />
               </header>
@@ -506,17 +561,4 @@ export default function LabPage() {
       <BottomNav />
     </main>
   );
-
-  function sendMessage() {
-    if (!user || !selectedUser || !messageText) return;
-    addDoc(collection(db, "messages"), {
-      participants: [user.uid, selectedUser.id],
-      senderId: user.uid,
-      receiverId: selectedUser.id,
-      text: messageText,
-      read: false,
-      timestamp: serverTimestamp()
-    });
-    setMessageText("");
-  }
 }
