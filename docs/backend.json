@@ -23,6 +23,7 @@
       "description": "Interactive educational content with polls and steps.",
       "properties": {
         "title": { "type": "string" },
+        "subject": { "type": "string" },
         "category": { "type": "string" },
         "targetClass": { "type": "string" },
         "description": { "type": "string" },
@@ -49,7 +50,7 @@
         },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["title", "category", "steps"]
+      "required": ["title", "subject", "steps"]
     },
     "Submission": {
       "title": "Submission",

@@ -30,7 +30,7 @@ const ContentGeneratorInputSchema = z.object({
 
 const ContentGeneratorOutputSchema = z.object({
   description: z.string().describe("2-sentence summary of the academic path."),
-  category: z.string(),
+  category: z.string().describe("Subject category."),
   imageUrl: z.string().describe("A main card image keyword."),
   steps: z.array(StepSchema)
 });

@@ -4,47 +4,14 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() { return request.auth != null; }
     
-    function isAdmin() { 
-      return isSignedIn() && (
-        request.auth.token.email == 'goddikrayz@gmail.com' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-      );
+    // Simple rule: If you're logged in, you can learn and talk.
+    match /{document=**} {
+      allow read, write: if isSignedIn();
     }
 
-    // Students can read/write their own profile
+    // Protect user roles - only admins can change roles
     match /users/{userId} {
-      allow get, list, write: if isSignedIn();
-    }
-
-    // Everyone logged in can read lessons
-    match /lessons/{lessonId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    // Everyone logged in can read tasks
-    match /tasks/{taskId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    // Social feed is open to all explorers
-    match /posts/{postId} {
-      allow read, write: if isSignedIn();
-      
-      match /comments/{commentId} {
-        allow read, write: if isSignedIn();
-      }
-    }
-
-    // Messaging rules
-    match /messages/{messageId} {
-      allow read, write: if isSignedIn();
-    }
-
-    // Submissions
-    match /submissions/{submissionId} {
-      allow read, write: if isSignedIn();
+      allow write: if isSignedIn() && (request.auth.uid == userId || request.resource.data.role == resource.data.role);
     }
   }
 }
