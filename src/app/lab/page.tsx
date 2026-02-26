@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, User, Sparkles, Loader2, Plus, Globe, Send, ArrowLeft, Search, Repeat2, Bookmark, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Heart, MessageCircle, User, Sparkles, Loader2, Plus, Globe, Send, ArrowLeft, Search, Repeat2, Bookmark, CheckCircle2, ShieldCheck, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit, increment } from "firebase/firestore";
@@ -25,8 +25,10 @@ export default function LabPage() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [messageText, setMessageText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [commentingOn, setCommentingOn] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState("");
 
-  // Social Posts Stream - Real-time "Websocket" equivalent via onSnapshot
+  // Social Posts Stream
   const postsQuery = useMemoFirebase(() => {
     return query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(50));
   }, [db]);
@@ -49,7 +51,6 @@ export default function LabPage() {
   }, [db, user, selectedUser]);
   const { data: rawMessages } = useCollection<any>(chatQuery);
 
-  // Filter messages for current conversation locally
   const activeMessages = rawMessages?.filter(m => 
     m.participants.includes(user?.uid) && m.participants.includes(selectedUser?.id)
   ) || [];
@@ -93,18 +94,24 @@ export default function LabPage() {
           const question = postContent.replace(/@guru/gi, "").trim();
           try {
             const res = await explainConcept({ concept: question });
+            // Guru AI "reposts" with explanation as caption
             addDoc(collection(db, "posts"), {
               userId: "guru-ai",
               userName: "Professor Sky",
               userPhoto: "https://picsum.photos/seed/guru/200/200",
-              content: `@${user.displayName || 'Explorer'}, ${res.explanation}`,
+              content: res.explanation,
+              isRepost: true,
+              repostCaption: res.explanation,
+              originalAuthor: user.displayName || 'Explorer',
+              originalContent: postContent,
+              originalPostId: docRef.id,
               likes: [],
               reposts: 0,
               isGuruResponse: true,
               timestamp: serverTimestamp()
             });
           } catch (e) {
-            console.error("Guru was sleeping");
+            console.error("Guru error");
           }
         }
       })
@@ -134,22 +141,21 @@ export default function LabPage() {
     if (!user) return;
     const postRef = doc(db, "posts", post.id);
     
-    // Increment repost count on original
     updateDoc(postRef, {
       reposts: increment(1)
     }).catch(e => {
        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `posts/${post.id}`, operation: 'update' }));
     });
 
-    // Create the repost in the feed
     const repostData = {
       userId: user.uid,
       userName: user.displayName || "Explorer",
       userPhoto: user.photoURL,
-      content: `🔄 Reposted from ${post.userName}: ${post.content}`,
+      content: post.content,
       isRepost: true,
       originalAuthor: post.userName,
       originalContent: post.content,
+      originalPostId: post.id,
       likes: [],
       reposts: 0,
       commentCount: 0,
@@ -159,6 +165,31 @@ export default function LabPage() {
     addDoc(collection(db, "posts"), repostData)
       .catch(e => {
          errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'posts', operation: 'create' }));
+      });
+  };
+
+  const handleAddComment = (postId: string) => {
+    if (!user || !commentText) return;
+    
+    const commentData = {
+      userId: user.uid,
+      userName: user.displayName || "Explorer",
+      userPhoto: user.photoURL,
+      text: commentText,
+      likes: [],
+      timestamp: serverTimestamp()
+    };
+
+    addDoc(collection(db, `posts/${postId}/comments`), commentData)
+      .then(() => {
+        updateDoc(doc(db, "posts", postId), {
+          commentCount: increment(1)
+        });
+        setCommentText("");
+        setCommentingOn(null);
+      })
+      .catch(e => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `posts/${postId}/comments`, operation: 'create' }));
       });
   };
 
@@ -172,10 +203,7 @@ export default function LabPage() {
       timestamp: serverTimestamp()
     };
 
-    addDoc(collection(db, "messages"), msgData)
-      .catch(e => {
-         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'messages', operation: 'create' }));
-      });
+    addDoc(collection(db, "messages"), msgData);
     setMessageText("");
   };
 
@@ -185,7 +213,7 @@ export default function LabPage() {
   ) || [];
 
   return (
-    <main className="min-h-screen pb-24 px-4 pt-12 max-w-md mx-auto bg-slate-50">
+    <main className="min-h-screen pb-24 px-4 pt-12 max-w-md mx-auto bg-slate-50 font-body">
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-black text-primary flex items-center gap-2">
           Lab <Globe className="text-secondary animate-pulse" />
@@ -260,11 +288,27 @@ export default function LabPage() {
                       </div>
                     </div>
 
-                    <p className="text-[15px] font-medium text-slate-700 leading-relaxed mb-6 whitespace-pre-wrap">
-                      {post.content}
-                    </p>
+                    <div className="space-y-4">
+                      <p className="text-[15px] font-medium text-slate-700 leading-relaxed whitespace-pre-wrap">
+                        {post.content}
+                      </p>
 
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                      {post.isRepost && (
+                        <div className="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 border-dashed">
+                          <div className="flex items-center gap-2 mb-2">
+                             <div className="w-6 h-6 rounded-lg bg-primary/10 relative overflow-hidden">
+                                <Image src={`https://picsum.photos/seed/${post.originalAuthor}/50/50`} alt="orig" fill unoptimized />
+                             </div>
+                             <span className="text-xs font-bold text-slate-500">{post.originalAuthor}</span>
+                          </div>
+                          <p className="text-xs font-medium text-slate-600 italic">
+                             {post.originalContent}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-6">
                       <div className="flex gap-6">
                         <button 
                           onClick={() => toggleLike(post)}
@@ -272,8 +316,11 @@ export default function LabPage() {
                         >
                           <Heart className={`w-5 h-5 ${hasLiked ? 'fill-rose-500' : ''}`} /> {postLikes.length}
                         </button>
-                        <button className="flex items-center gap-2 text-slate-400 font-black text-sm hover:text-blue-500 transition-colors">
-                          <MessageCircle className="w-5 h-5" /> {post.commentCount || 0}
+                        <button 
+                          onClick={() => setCommentingOn(commentingOn === post.id ? null : post.id)}
+                          className="flex items-center gap-2 text-slate-400 font-black text-sm hover:text-blue-500 transition-colors"
+                        >
+                          <MessageSquare className="w-5 h-5" /> {post.commentCount || 0}
                         </button>
                         <button 
                           onClick={() => handleRepost(post)}
@@ -282,10 +329,22 @@ export default function LabPage() {
                           <Repeat2 className="w-5 h-5" /> {post.reposts || 0}
                         </button>
                       </div>
-                      <button className="text-slate-400 hover:text-primary transition-colors">
-                        <Bookmark className="w-5 h-5" />
-                      </button>
                     </div>
+
+                    {commentingOn === post.id && (
+                      <div className="mt-4 pt-4 border-t border-slate-50 space-y-4">
+                        <div className="flex gap-2">
+                          <Input 
+                            className="rounded-xl h-10 text-sm" 
+                            placeholder="Add a comment..." 
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                          />
+                          <Button size="sm" className="rounded-xl" onClick={() => handleAddComment(post.id)}>Post</Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );

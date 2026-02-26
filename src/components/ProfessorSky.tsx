@@ -37,15 +37,15 @@ export function ProfessorSky() {
           onClick={() => setIsOpen(true)}
           className="w-20 h-20 hover:scale-110 transition-transform active:scale-95 flex items-center justify-center p-0 bg-transparent border-none drop-shadow-2xl"
         >
-          {/* Custom Purple Labubu / Character SVG - Frameless & Colorful */}
+          {/* Frameless Purple Labubu / Character SVG */}
           <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* Ears */}
-            <ellipse cx="35" cy="25" rx="10" ry="18" fill="#D946EF" />
-            <ellipse cx="65" cy="25" rx="10" ry="18" fill="#D946EF" />
-            <ellipse cx="35" cy="28" rx="5" ry="10" fill="#F0ABFC" />
-            <ellipse cx="65" cy="28" rx="5" ry="10" fill="#F0ABFC" />
+            <ellipse cx="35" cy="25" rx="10" ry="18" fill="#A855F7" />
+            <ellipse cx="65" cy="25" rx="10" ry="18" fill="#A855F7" />
+            <ellipse cx="35" cy="28" rx="5" ry="10" fill="#E9D5FF" />
+            <ellipse cx="65" cy="28" rx="5" ry="10" fill="#E9D5FF" />
             {/* Head/Body */}
-            <path d="M20 60C20 40 30 30 50 30C70 30 80 40 80 60C80 85 70 95 50 95C30 95 20 85 20 60Z" fill="#D946EF" />
+            <path d="M20 60C20 40 30 30 50 30C70 30 80 40 80 60C80 85 70 95 50 95C30 95 20 85 20 60Z" fill="#A855F7" />
             {/* Face */}
             <path d="M30 65C30 50 40 45 50 45C60 45 70 50 70 65C70 80 60 85 50 85C40 85 30 80 30 65Z" fill="#FDF4FF" />
             {/* Eyes */}
@@ -55,12 +55,12 @@ export function ProfessorSky() {
             <path d="M45 72Q50 77 55 72" stroke="#4A044E" strokeWidth="2.5" strokeLinecap="round" />
             {/* Sparkles */}
             <path d="M15 30L18 33M18 30L15 33" stroke="#F472B6" strokeWidth="2" strokeLinecap="round" />
-            <path d="M85 45L88 48M88 45L85 48" stroke="#A855F7" strokeWidth="2" strokeLinecap="round" />
+            <path d="M85 45L88 48M88 45L85 48" stroke="#D946EF" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
       ) : (
         <Card className="w-80 border-none kid-card-shadow overflow-hidden bg-white/95 backdrop-blur-md animate-in zoom-in-95 slide-in-from-bottom-5 rounded-[2.5rem]">
-          <CardHeader className="bg-gradient-to-r from-fuchsia-600 to-purple-600 p-4 flex flex-row items-center justify-between text-white">
+          <CardHeader className="bg-gradient-to-r from-purple-600 to-fuchsia-600 p-4 flex flex-row items-center justify-between text-white">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-yellow-300" />
               <CardTitle className="text-sm font-black uppercase tracking-widest">Professor Sky</CardTitle>
@@ -72,24 +72,24 @@ export function ProfessorSky() {
           <CardContent className="p-4">
             <div className="max-h-60 overflow-y-auto mb-4 space-y-2">
               {response ? (
-                <div className="bg-fuchsia-50 p-4 rounded-2xl text-[13px] font-semibold leading-relaxed text-fuchsia-900 border border-fuchsia-100 animate-in fade-in slide-in-from-bottom-2">
+                <div className="bg-purple-50 p-4 rounded-2xl text-[13px] font-semibold leading-relaxed text-purple-900 border border-purple-100 animate-in fade-in slide-in-from-bottom-2">
                   "{response}"
                 </div>
               ) : (
-                <div className="text-fuchsia-300 text-[10px] font-bold uppercase text-center py-8">
+                <div className="text-purple-300 text-[10px] font-bold uppercase text-center py-8">
                   I'm ready to explain anything!
                 </div>
               )}
             </div>
             <div className="flex gap-2">
               <Input 
-                className="h-12 text-xs rounded-2xl border-fuchsia-100 bg-slate-50" 
+                className="h-12 text-xs rounded-2xl border-purple-100 bg-slate-50" 
                 placeholder="Ask your guru..." 
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
               />
-              <Button onClick={handleAsk} disabled={loading} size="icon" className="h-12 w-12 shrink-0 rounded-2xl bg-fuchsia-600 hover:bg-fuchsia-700 shadow-lg shadow-fuchsia-200">
+              <Button onClick={handleAsk} disabled={loading} size="icon" className="h-12 w-12 shrink-0 rounded-2xl bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-200">
                 {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>
