@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, BookOpen, FlaskConical, ClipboardList, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 
@@ -27,8 +27,8 @@ export function BottomNav() {
     if (!user || !db) return;
     const q = query(
       collection(db, "messages"),
-      where("participants", "array-contains", user.uid),
-      where("timestamp", ">=", new Date(Date.now() - 3600000)) // Activity in the last hour
+      where("receiverId", "==", user.uid),
+      where("read", "==", false)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setHasNew(!snapshot.empty);
@@ -55,7 +55,7 @@ export function BottomNav() {
               <item.icon className={cn("w-6 h-6", isActive && "fill-primary/20")} strokeWidth={isActive ? 2.5 : 2} />
               <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
               {isActive && <div className="absolute -top-1 w-1 h-1 rounded-full bg-primary" />}
-              {showDot && <div className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border border-white" />}
+              {showDot && <div className="absolute top-2 right-2 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse" />}
             </Link>
           );
         })}
