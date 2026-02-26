@@ -6,9 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, User, Sparkles, Loader2, Plus, Globe, Send, ArrowLeft, Search, Repeat2, Bookmark, CheckCircle2, ShieldCheck, MessageSquare } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit, increment } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, where, limit, increment, onSnapshot } from "firebase/firestore";
 import Image from "next/image";
 import { explainConcept } from "@/ai/flows/concept-explainer";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -34,28 +34,29 @@ export default function LabPage() {
   }, [db]);
   const { data: posts, isLoading: isPostsLoading } = useCollection<any>(postsQuery);
 
-  // Users for Messaging and Titles
+  // Users for Messaging and Ranks
   const usersQuery = useMemoFirebase(() => {
     return query(collection(db, "users"), limit(100));
   }, [db]);
   const { data: allUsers } = useCollection<any>(usersQuery);
 
   // Messages Stream
-  const chatQuery = useMemoFirebase(() => {
-    if (!user || !selectedUser) return null;
-    return query(
+  const [activeMessages, setActiveMessages] = useState<any[]>([]);
+  useEffect(() => {
+    if (!user || !selectedUser) return;
+    const q = query(
       collection(db, "messages"),
       where("participants", "array-contains", user.uid),
       orderBy("timestamp", "asc")
     );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs
+        .map(d => ({ ...d.data(), id: d.id }))
+        .filter((m: any) => m.participants.includes(selectedUser.id));
+      setActiveMessages(msgs);
+    });
+    return () => unsubscribe();
   }, [db, user, selectedUser]);
-  const { data: rawMessages } = useCollection<any>(chatQuery);
-
-  const activeMessages = useMemo(() => {
-    return (rawMessages || []).filter(m => 
-      m.participants.includes(user?.uid) && m.participants.includes(selectedUser?.id)
-    );
-  }, [rawMessages, user, selectedUser]);
 
   const getUserTitle = (stars: number = 0) => {
     if (stars > 3000) return "Skybound Legend";
@@ -96,12 +97,12 @@ export default function LabPage() {
           const question = postContent.replace(/@guru/gi, "").trim();
           try {
             const res = await explainConcept({ concept: question });
-            // Guru AI "reposts" with explanation as caption
+            // Guru AI "Quote Reposts" with varied length response
             addDoc(collection(db, "posts"), {
               userId: "guru-ai",
               userName: "Professor Sky",
               userPhoto: "https://picsum.photos/seed/guru/200/200",
-              content: postContent, // Original content is preserved
+              content: postContent,
               isRepost: true,
               repostCaption: res.explanation,
               originalAuthor: user.displayName || 'Explorer',
@@ -113,7 +114,7 @@ export default function LabPage() {
               timestamp: serverTimestamp()
             });
           } catch (e) {
-            console.error("Guru error");
+            console.error("Guru error", e);
           }
         }
       })
@@ -141,9 +142,8 @@ export default function LabPage() {
 
   const handleRepost = (post: any) => {
     if (!user) return;
-    const postRef = doc(db, "posts", post.id);
     
-    updateDoc(postRef, {
+    updateDoc(doc(db, "posts", post.id), {
       reposts: increment(1)
     }).catch(e => {
        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `posts/${post.id}`, operation: 'update' }));
@@ -205,7 +205,9 @@ export default function LabPage() {
       timestamp: serverTimestamp()
     };
 
-    addDoc(collection(db, "messages"), msgData);
+    addDoc(collection(db, "messages"), msgData).catch(e => {
+       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'messages', operation: 'create' }));
+    });
     setMessageText("");
   };
 
@@ -336,16 +338,16 @@ export default function LabPage() {
                     </div>
 
                     {commentingOn === post.id && (
-                      <div className="mt-4 pt-4 border-t border-slate-50 space-y-4">
+                      <div className="mt-4 pt-4 border-t border-slate-50 space-y-4 animate-in fade-in slide-in-from-top-2">
                         <div className="flex gap-2">
                           <Input 
-                            className="rounded-xl h-10 text-sm" 
-                            placeholder="Add a comment..." 
+                            className="rounded-xl h-10 text-sm bg-slate-50" 
+                            placeholder="Add an insightful comment..." 
                             value={commentText}
                             onChange={(e) => setCommentText(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
                           />
-                          <Button size="sm" className="rounded-xl" onClick={() => handleAddComment(post.id)}>Post</Button>
+                          <Button size="sm" className="rounded-xl bg-primary" onClick={() => handleAddComment(post.id)}>Post</Button>
                         </div>
                       </div>
                     )}
@@ -363,7 +365,7 @@ export default function LabPage() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <Input 
                   className="pl-12 rounded-[1.5rem] border-none bg-white kid-card-shadow h-14 text-base font-medium" 
-                  placeholder="Find your squad members..." 
+                  placeholder="Search students to chat..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -385,10 +387,10 @@ export default function LabPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="font-black text-slate-800 text-lg">{u.displayName || "Explorer"}</h4>
-                        <span className="text-[10px] font-bold text-slate-300">Active</span>
+                        <span className="text-[10px] font-bold text-slate-300">Available</span>
                       </div>
                       <p className="text-xs font-bold text-primary uppercase tracking-tighter">
-                         Level {Math.floor((u.totalStars || 0) / 100)} {getUserTitle(u.totalStars)}
+                         {getUserTitle(u.totalStars)}
                       </p>
                     </div>
                   </Card>
@@ -409,7 +411,7 @@ export default function LabPage() {
                       <h4 className="font-black text-sm">{selectedUser.displayName}</h4>
                       <div className="flex items-center gap-1">
                          <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                         <span className="text-[10px] font-bold text-white/70 uppercase">Online</span>
+                         <span className="text-[10px] font-bold text-white/70 uppercase">Chatting</span>
                       </div>
                    </div>
                 </div>
@@ -431,7 +433,7 @@ export default function LabPage() {
               <div className="p-4 bg-white border-t flex gap-3">
                 <Input 
                   className="rounded-2xl bg-slate-100 border-none h-14 font-medium px-6 focus-visible:ring-primary/20" 
-                  placeholder="Type a secret message..." 
+                  placeholder="Type your message..." 
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
