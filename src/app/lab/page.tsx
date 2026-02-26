@@ -1,4 +1,3 @@
-
 "use client"
 
 import { BottomNav } from "@/components/BottomNav";
@@ -14,10 +13,12 @@ import Image from "next/image";
 import { explainConcept } from "@/ai/flows/concept-explainer";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { useRouter } from "next/navigation";
 
 export default function LabPage() {
   const { user } = useUser();
   const db = useFirestore();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("social");
   const [postContent, setPostContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
@@ -25,7 +26,7 @@ export default function LabPage() {
   const [messageText, setMessageText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Social Posts Stream
+  // Social Posts Stream - Firestore "Websocket" equivalent via onSnapshot in useCollection
   const postsQuery = useMemoFirebase(() => {
     return query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(50));
   }, [db]);
@@ -37,6 +38,7 @@ export default function LabPage() {
   }, [db]);
   const { data: allUsers } = useCollection<any>(usersQuery);
 
+  // Messages Stream
   const chatQuery = useMemoFirebase(() => {
     if (!user || !selectedUser) return null;
     return query(
@@ -47,6 +49,7 @@ export default function LabPage() {
   }, [db, user, selectedUser]);
   const { data: rawMessages } = useCollection<any>(chatQuery);
 
+  // Filter messages for current conversation locally to avoid complex Firestore composite indexes
   const activeMessages = rawMessages?.filter(m => 
     m.participants.includes(user?.uid) && m.participants.includes(selectedUser?.id)
   ) || [];
@@ -96,10 +99,9 @@ export default function LabPage() {
               userPhoto: "https://picsum.photos/seed/guru/200/200",
               content: `@${user.displayName || 'Explorer'}, ${res.explanation}`,
               likes: [],
+              reposts: 0,
               isGuruResponse: true,
               timestamp: serverTimestamp()
-            }).catch(e => {
-               errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'posts', operation: 'create' }));
             });
           } catch (e) {
             console.error("Guru was sleeping");
@@ -133,6 +135,18 @@ export default function LabPage() {
     const postRef = doc(db, "posts", post.id);
     updateDoc(postRef, {
       reposts: increment(1)
+    }).then(() => {
+      // Create a "Repost" post in the feed
+      addDoc(collection(db, "posts"), {
+        userId: user.uid,
+        userName: user.displayName || "Explorer",
+        userPhoto: user.photoURL,
+        content: `🔄 Reposted: ${post.content}`,
+        originalPostId: post.id,
+        likes: [],
+        reposts: 0,
+        timestamp: serverTimestamp()
+      });
     }).catch(e => {
        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `posts/${post.id}`, operation: 'update' }));
     });
@@ -216,7 +230,7 @@ export default function LabPage() {
                 <Card key={post.id} className={`border-none kid-card-shadow bg-white rounded-[2rem] overflow-hidden transition-all active:scale-[0.98] ${post.isGuruResponse ? 'ring-2 ring-purple-400/30' : ''}`}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-5">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push(`/profile?uid=${post.userId}`)}>
                         <div className="w-12 h-12 rounded-2xl bg-slate-100 overflow-hidden relative border-2 border-white shadow-sm">
                           {post.userPhoto ? (
                             <Image src={post.userPhoto} alt={post.userName} fill className="object-cover" unoptimized />
