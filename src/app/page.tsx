@@ -4,7 +4,7 @@
 import { BottomNav } from "@/components/BottomNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Cloud, Star, Sparkles, Trophy, FlaskConical, ClipboardList, Loader2, ArrowRight, BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -52,7 +52,7 @@ export default function Home() {
           <p className="text-muted-foreground font-bold text-xs uppercase tracking-widest">Hi, {profile?.displayName || "Explorer"}</p>
         </div>
         <Link href="/profile" className="w-12 h-12 rounded-2xl bg-primary/10 border-2 border-primary/20 overflow-hidden relative">
-          <Image src={user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`} alt="Avatar" fill className="object-cover" />
+          <Image src={user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`} alt="Avatar" fill className="object-cover" unoptimized />
         </Link>
       </header>
 
@@ -84,7 +84,7 @@ export default function Home() {
                 <div className="flex items-center gap-3">
                   <span className="font-black text-primary/20 w-4">#{i+1}</span>
                   <div className="w-8 h-8 rounded-lg bg-slate-100 relative overflow-hidden">
-                    <Image src={u.photoURL || `https://picsum.photos/seed/${u.id}/50/50`} alt={u.displayName} fill className="object-cover" />
+                    <Image src={u.photoURL || `https://picsum.photos/seed/${u.id}/50/50`} alt={u.displayName} fill className="object-cover" unoptimized />
                   </div>
                   <span className="font-bold text-sm text-slate-700">{u.displayName}</span>
                 </div>
