@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Sparkles, Loader2, BrainCircuit, CheckCircle2, AlertTriangle, Plus } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2, BrainCircuit, CheckCircle2, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -22,7 +22,8 @@ const SUBJECTS = [
   "Mathematics", "Further Mathematics", "English Language", "Literature-in-English", 
   "Physics", "Chemistry", "Biology", "Agricultural Science", "Economics", 
   "Geography", "Government", "Civic Education", "Financial Accounting", 
-  "Commerce", "ICT / Data Processing", "Technical Drawing", "CRS / IRS", "Visual Arts"
+  "Commerce", "ICT / Data Processing", "Technical Drawing", "CRS / IRS", "Visual Arts",
+  "Basic Science", "Basic Technology", "Social Studies", "Home Economics", "Physical and Health Education"
 ];
 
 const CLASSES = [
@@ -74,7 +75,7 @@ export default function AdminPage() {
       setLessonForm(prev => ({
         ...prev,
         ...result,
-        title: prev.title, // Keep the user's title if they prefer
+        title: prev.title, 
         subject: prev.subject,
         targetClass: prev.targetClass
       }));
@@ -88,7 +89,7 @@ export default function AdminPage() {
 
   const handlePublish = async () => {
     if (lessonForm.steps.length === 0) {
-      toast({ title: "No Steps", description: "Trigger the AI architect or add steps first." });
+      toast({ title: "No Steps", description: "Add steps manually or use the AI architect." });
       return;
     }
     setLoading(true);
@@ -100,6 +101,8 @@ export default function AdminPage() {
       toast({ title: "Academy Live", description: "Path is now open for students." });
       setLessonForm({ title: "", subject: "", targetClass: "", idea: "", imageUrl: "", description: "", steps: [] });
       router.push('/academy');
+    } catch (e) {
+      toast({ title: "Publish Failed", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -140,11 +143,16 @@ export default function AdminPage() {
           </div>
         </div>
 
+        <div className="space-y-2">
+           <Label className="font-bold">Lesson Idea / Focus (Teachers can specify details here)</Label>
+           <Input value={lessonForm.idea} onChange={e => setLessonForm(p => ({...p, idea: e.target.value}))} placeholder="e.g. Focus on Newton's Laws" className="rounded-xl h-12" />
+        </div>
+
         <div className="p-6 bg-primary/5 rounded-[2rem] border-2 border-dashed border-primary/20 text-center relative overflow-hidden">
           <BrainCircuit className="w-10 h-10 text-primary mx-auto mb-2" />
-          <p className="text-xs font-bold text-primary mb-4 uppercase tracking-widest italic">Professor Sky will architect the entire scheme of work.</p>
+          <p className="text-xs font-bold text-primary mb-4 uppercase tracking-widest italic">Trigger Professor Sky to architect the lesson path for you.</p>
           <Button onClick={handleAiMagic} disabled={loading} className="bg-primary hover:bg-primary/90 h-14 px-8 rounded-2xl font-black text-lg kid-card-shadow">
-            {loading ? <Loader2 className="animate-spin" /> : <><Sparkles className="mr-2" /> TRIGGER MAGIC AI FILL</>}
+            {loading ? <Loader2 className="animate-spin" /> : <><Sparkles className="mr-2" /> MAGIC AI FILL</>}
           </Button>
         </div>
 
@@ -154,10 +162,11 @@ export default function AdminPage() {
                <div className="relative w-24 h-24 rounded-2xl overflow-hidden shrink-0">
                   <Image src={lessonForm.imageUrl || `https://picsum.photos/seed/${lessonForm.title}/400/300`} alt="Card" fill className="object-cover" unoptimized />
                </div>
-               <div>
+               <div className="flex-1">
                   <h3 className="font-black text-primary text-xl uppercase italic leading-tight">{lessonForm.title}</h3>
                   <p className="text-[10px] font-bold text-slate-400 italic mt-1">{lessonForm.description}</p>
                </div>
+               <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-500" onClick={() => setLessonForm(p => ({...p, steps: []}))}><Trash2 className="w-5 h-5" /></Button>
             </div>
 
             <div className="space-y-6">
@@ -176,12 +185,12 @@ export default function AdminPage() {
                             <Image src={step.imageUrl} alt="step" fill className="object-cover" unoptimized />
                          </div>
                        )}
-                       <p className="text-xs font-medium text-slate-700 leading-relaxed flex-1">{step.content}</p>
+                       <p className="text-xs font-medium text-slate-700 leading-relaxed flex-1 italic">{step.content}</p>
                     </div>
 
                     {step.poll && (
                       <div className="mt-4 p-4 bg-secondary/5 rounded-2xl border border-secondary/10">
-                         <p className="text-[10px] font-black text-secondary mb-2 uppercase italic">Knowledge Check</p>
+                         <p className="text-[10px] font-black text-secondary mb-2 uppercase italic">Interactive Knowledge Check</p>
                          <p className="text-xs font-bold mb-2">{step.poll.question}</p>
                          <div className="flex flex-wrap gap-2">
                             {step.poll.options.map((opt: string) => (
@@ -195,7 +204,7 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
-              <Button onClick={handlePublish} disabled={loading} className="w-full h-16 bg-primary text-white font-black text-xl rounded-[2.5rem] kid-card-shadow shadow-primary/20 mt-8">
+              <Button onClick={handlePublish} disabled={loading} className="w-full h-16 bg-primary text-white font-black text-xl rounded-[2.5rem] kid-card-shadow shadow-primary/20 mt-8 uppercase italic tracking-tighter">
                 PUBLISH ELITE PATH
               </Button>
             </div>
