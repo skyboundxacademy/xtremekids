@@ -68,9 +68,13 @@ export default function Home() {
       <header className="flex justify-between items-center mb-8">
         <div>
           <AppLogo className="mb-2" />
-          <p className="text-muted-foreground font-bold text-xs uppercase tracking-widest ml-1">
-            {isProfileLoading ? <Skeleton className="h-4 w-24 mt-1" /> : `Explorer: ${profile?.displayName || "Explorer"}`}
-          </p>
+          <div className="text-muted-foreground font-bold text-xs uppercase tracking-widest ml-1">
+            {isProfileLoading ? (
+              <Skeleton className="h-4 w-24 mt-1" />
+            ) : (
+              `Explorer: ${profile?.displayName || "Explorer"}`
+            )}
+          </div>
         </div>
         <Link href="/profile" className="w-12 h-12 rounded-2xl bg-primary/10 border-2 border-primary/20 overflow-hidden relative shadow-sm hover:scale-105 transition-transform">
           <Image src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} alt="Avatar" fill className="object-cover" unoptimized />
