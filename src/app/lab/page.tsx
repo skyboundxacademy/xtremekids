@@ -26,7 +26,7 @@ export default function LabPage() {
   const [messageText, setMessageText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Social Posts Stream - Firestore "Websocket" equivalent via onSnapshot in useCollection
+  // Social Posts Stream - Real-time "Websocket" equivalent via onSnapshot
   const postsQuery = useMemoFirebase(() => {
     return query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(50));
   }, [db]);
@@ -49,7 +49,7 @@ export default function LabPage() {
   }, [db, user, selectedUser]);
   const { data: rawMessages } = useCollection<any>(chatQuery);
 
-  // Filter messages for current conversation locally to avoid complex Firestore composite indexes
+  // Filter messages for current conversation locally
   const activeMessages = rawMessages?.filter(m => 
     m.participants.includes(user?.uid) && m.participants.includes(selectedUser?.id)
   ) || [];
@@ -133,23 +133,33 @@ export default function LabPage() {
   const handleRepost = (post: any) => {
     if (!user) return;
     const postRef = doc(db, "posts", post.id);
+    
+    // Increment repost count on original
     updateDoc(postRef, {
       reposts: increment(1)
-    }).then(() => {
-      // Create a "Repost" post in the feed
-      addDoc(collection(db, "posts"), {
-        userId: user.uid,
-        userName: user.displayName || "Explorer",
-        userPhoto: user.photoURL,
-        content: `🔄 Reposted: ${post.content}`,
-        originalPostId: post.id,
-        likes: [],
-        reposts: 0,
-        timestamp: serverTimestamp()
-      });
     }).catch(e => {
        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `posts/${post.id}`, operation: 'update' }));
     });
+
+    // Create the repost in the feed
+    const repostData = {
+      userId: user.uid,
+      userName: user.displayName || "Explorer",
+      userPhoto: user.photoURL,
+      content: `🔄 Reposted from ${post.userName}: ${post.content}`,
+      isRepost: true,
+      originalAuthor: post.userName,
+      originalContent: post.content,
+      likes: [],
+      reposts: 0,
+      commentCount: 0,
+      timestamp: serverTimestamp()
+    };
+
+    addDoc(collection(db, "posts"), repostData)
+      .catch(e => {
+         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'posts', operation: 'create' }));
+      });
   };
 
   const sendMessage = () => {
