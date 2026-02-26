@@ -33,27 +33,6 @@
       },
       "required": ["title", "steps", "category"]
     },
-    "Quiz": {
-      "title": "Quiz",
-      "type": "object",
-      "description": "Interactive quiz to test knowledge.",
-      "properties": {
-        "title": { "type": "string" },
-        "category": { "type": "string" },
-        "questions": { 
-          "type": "array", 
-          "items": { 
-            "type": "object",
-            "properties": {
-              "question": { "type": "string" },
-              "options": { "type": "array", "items": { "type": "string" } },
-              "correctAnswer": { "type": "number" }
-            }
-          }
-        },
-        "ageRange": { "type": "string" }
-      }
-    },
     "Post": {
       "title": "Post",
       "type": "object",
@@ -61,9 +40,12 @@
       "properties": {
         "userId": { "type": "string" },
         "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
         "content": { "type": "string" },
         "imageUrl": { "type": "string" },
-        "likes": { "type": "number" },
+        "likes": { "type": "array", "items": { "type": "string" } },
+        "commentCount": { "type": "number" },
+        "isGuruResponse": { "type": "boolean" },
         "timestamp": { "type": "string", "format": "date-time" }
       }
     },
@@ -72,6 +54,7 @@
       "type": "object",
       "description": "Private message between students.",
       "properties": {
+        "participants": { "type": "array", "items": { "type": "string" } },
         "senderId": { "type": "string" },
         "receiverId": { "type": "string" },
         "text": { "type": "string" },
@@ -91,10 +74,6 @@
       "schema": { "$ref": "#/backend/entities/Lesson" },
       "description": "Lessons curriculum."
     },
-    "/quizzes/{quizId}": {
-      "schema": { "$ref": "#/backend/entities/Quiz" },
-      "description": "Knowledge tests."
-    },
     "/posts/{postId}": {
       "schema": { "$ref": "#/backend/entities/Post" },
       "description": "Social feed posts."
@@ -102,10 +81,6 @@
     "/messages/{messageId}": {
       "schema": { "$ref": "#/backend/entities/Message" },
       "description": "Direct messages."
-    },
-    "/submissions/{submissionId}": {
-      "schema": { "$ref": "#/backend/entities/Submission" },
-      "description": "Submission marking queue."
     }
   }
 }
