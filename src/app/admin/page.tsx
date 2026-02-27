@@ -30,7 +30,7 @@ const SUBJECTS = [
   "Geography", "Government", "Civic Education", "Financial Accounting", 
   "Commerce", "ICT / Data Processing", "Technical Drawing", "CRS / IRS", "Visual Arts",
   "Basic Science", "Basic Technology", "Social Studies", "Home Economics", "Physical and Health Education",
-  "French", "Igbo", "Yoruba", "Hausa", "Arabic"
+  "Korean Language", "French", "Igbo", "Yoruba", "Hausa", "Arabic"
 ];
 
 const CLASSES = [

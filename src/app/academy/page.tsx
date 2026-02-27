@@ -5,7 +5,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, ArrowRight, CheckCircle2, GraduationCap, Compass, BookOpen, ChevronRight, LayoutGrid } from "lucide-react";
+import { Search, ArrowRight, CheckCircle2, GraduationCap, Compass, BookOpen, ChevronLeft, LayoutGrid, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -18,7 +18,9 @@ import { cn } from "@/lib/utils";
 
 const SUBJECTS = [
   { name: "Mathematics", icon: "https://picsum.photos/seed/math-class/400/300", category: "Mathematics" },
+  { name: "Further Maths", icon: "https://picsum.photos/seed/advanced-calc/400/300", category: "Further Mathematics" },
   { name: "English Language", icon: "https://picsum.photos/seed/library-books/400/300", category: "English Language" },
+  { name: "Literature", icon: "https://picsum.photos/seed/story-books/400/300", category: "Literature-in-English" },
   { name: "Physics", icon: "https://picsum.photos/seed/atom-physics/400/300", category: "Physics" },
   { name: "Chemistry", icon: "https://picsum.photos/seed/chemistry-flasks/400/300", category: "Chemistry" },
   { name: "Biology", icon: "https://picsum.photos/seed/microscope-biology/400/300", category: "Biology" },
@@ -28,15 +30,26 @@ const SUBJECTS = [
   { name: "Government", icon: "https://picsum.photos/seed/justice-law/400/300", category: "Government" },
   { name: "Civic Ed", icon: "https://picsum.photos/seed/peace-human/400/300", category: "Civic Education" },
   { name: "Agric Science", icon: "https://picsum.photos/seed/farm-agric/400/300", category: "Agricultural Science" },
+  { name: "Financial Acc", icon: "https://picsum.photos/seed/ledger-books/400/300", category: "Financial Accounting" },
+  { name: "Commerce", icon: "https://picsum.photos/seed/business-market/400/300", category: "Commerce" },
   { name: "Visual Arts", icon: "https://picsum.photos/seed/painting-art/400/300", category: "Visual Arts" },
   { name: "Tech Drawing", icon: "https://picsum.photos/seed/drawing-plans/400/300", category: "Technical Drawing" },
-  { name: "Further Maths", icon: "https://picsum.photos/seed/advanced-calc/400/300", category: "Further Mathematics" },
-  { name: "Literature", icon: "https://picsum.photos/seed/story-books/400/300", category: "Literature-in-English" }
+  { name: "Korean Lang", icon: "https://picsum.photos/seed/seoul-korea/400/300", category: "Korean Language" },
+  { name: "French", icon: "https://picsum.photos/seed/paris-france/400/300", category: "French" },
+  { name: "Igbo", icon: "https://picsum.photos/seed/nigeria-igbo/400/300", category: "Igbo" },
+  { name: "Yoruba", icon: "https://picsum.photos/seed/nigeria-yoruba/400/300", category: "Yoruba" },
+  { name: "Hausa", icon: "https://picsum.photos/seed/nigeria-hausa/400/300", category: "Hausa" }
+];
+
+const CLASSES = [
+  "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
+  "JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"
 ];
 
 export default function AcademyPage() {
   const [search, setSearch] = useState("");
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const { user } = useUser();
   const db = useFirestore();
   const [completedTitles, setCompletedTitles] = useState<Set<string>>(new Set());
@@ -66,7 +79,8 @@ export default function AcademyPage() {
   const filteredLessons = lessons?.filter((l: any) => {
     const matchesSearch = l.title.toLowerCase().includes(search.toLowerCase());
     const matchesSubject = !selectedSubject || l.subject === selectedSubject || l.category === selectedSubject;
-    return matchesSearch && matchesSubject;
+    const matchesClass = !selectedClass || l.targetClass === selectedClass;
+    return matchesSearch && matchesSubject && matchesClass;
   }) || [];
 
   const enrolledLessons = lessons?.filter((l: any) => completedTitles.has(`Completed Lesson: ${l.title}`)) || [];
@@ -74,13 +88,13 @@ export default function AcademyPage() {
   const LessonGrid = ({ list }: { list: any[] }) => (
     <div className="space-y-6">
       {list.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-[2.5rem] kid-card-shadow">
+        <div className="text-center py-20 bg-white rounded-[2.5rem] kid-card-shadow border-2 border-dashed border-primary/10">
           <BookOpen className="w-12 h-12 text-primary/10 mx-auto mb-4" />
-          <p className="font-black text-slate-400 uppercase tracking-widest italic text-xs px-10">Professor Sky is still crafting paths for this subject.</p>
+          <p className="font-black text-slate-400 uppercase tracking-widest italic text-xs px-10">Professor Sky is still crafting elite paths for this level.</p>
         </div>
       ) : (
         list.map((lesson) => (
-          <Link key={lesson.id} href={`/academy/${lesson.id}`}>
+          <Link key={lesson.id} href={`/academy/${lesson.category || 'General'}/${lesson.id}`}>
             <Card className="overflow-hidden border-none kid-card-shadow bg-white group active:scale-95 transition-all">
               <div className="relative h-48 w-full">
                 <Image 
@@ -170,13 +184,36 @@ export default function AcademyPage() {
                 </button>
               ))}
             </div>
-          ) : (
+          ) : !selectedClass ? (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
               <div className="flex items-center justify-between mb-4">
                 <button onClick={() => setSelectedSubject(null)} className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
-                  <ChevronRight className="w-3 h-3 rotate-180" /> Back to Subjects
+                  <ChevronLeft className="w-3 h-3" /> Back
                 </button>
                 <h2 className="text-sm font-black text-slate-800 uppercase italic tracking-tighter">{selectedSubject}</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {CLASSES.map((cls) => (
+                  <button
+                    key={cls}
+                    onClick={() => setSelectedClass(cls)}
+                    className="h-16 rounded-2xl bg-white border-2 border-primary/5 kid-card-shadow font-black uppercase text-[10px] tracking-widest italic text-primary hover:bg-primary hover:text-white transition-all"
+                  >
+                    {cls}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={() => setSelectedClass(null)} className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
+                  <ChevronLeft className="w-3 h-3" /> Back to Levels
+                </button>
+                <div className="text-right">
+                  <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{selectedSubject}</h2>
+                  <p className="text-sm font-black text-primary uppercase italic tracking-tighter">{selectedClass}</p>
+                </div>
               </div>
               {isLoading ? <Skeleton className="h-64 w-full rounded-3xl" /> : <LessonGrid list={filteredLessons} />}
             </div>
@@ -189,7 +226,7 @@ export default function AcademyPage() {
           ) : enrolledLessons.length > 0 ? (
             <LessonGrid list={enrolledLessons} />
           ) : (
-            <div className="text-center py-20 bg-white rounded-[2rem] kid-card-shadow">
+            <div className="text-center py-20 bg-white rounded-[2rem] kid-card-shadow border-2 border-dashed border-primary/10">
               <Compass className="w-12 h-12 text-primary/10 mx-auto mb-4" />
               <p className="font-black text-slate-400 uppercase tracking-widest italic text-xs px-10">Your academic journey starts here. Explore subjects!</p>
             </div>
@@ -201,3 +238,4 @@ export default function AcademyPage() {
     </main>
   );
 }
+
