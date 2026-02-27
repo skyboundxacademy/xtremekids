@@ -94,7 +94,7 @@ export default function AcademyPage() {
         </div>
       ) : (
         list.map((lesson) => (
-          <Link key={lesson.id} href={`/academy/${lesson.category || 'General'}/${lesson.id}`}>
+          <Link key={lesson.id} href={`/academy/${lesson.category || 'General'}/${lesson.targetClass || 'Academy'}/${lesson.id}`}>
             <Card className="overflow-hidden border-none kid-card-shadow bg-white group active:scale-95 transition-all">
               <div className="relative h-48 w-full">
                 <Image 
