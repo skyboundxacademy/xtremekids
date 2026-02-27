@@ -23,14 +23,13 @@ export default function ClassLessonsPage() {
   const decodedClass = decodeURIComponent(targetClass as string);
 
   const lessonsQuery = useMemoFirebase(() => {
-    if (!user || !category || !targetClass) return null;
     return query(
       collection(db, 'lessons'), 
       where('category', '==', decodedCategory),
       where('targetClass', '==', decodedClass),
       orderBy('createdAt', 'desc')
     );
-  }, [db, user, decodedCategory, decodedClass]);
+  }, [db, decodedCategory, decodedClass]);
 
   const { data: lessons, isLoading } = useCollection<any>(lessonsQuery);
 
@@ -81,6 +80,7 @@ export default function ClassLessonsPage() {
                     fill 
                     className="object-cover group-hover:scale-105 transition-transform"
                     unoptimized
+                    data-ai-hint="lesson cover"
                   />
                   {completedTitles.has(`Completed Lesson: ${lesson.title}`) && (
                     <div className="absolute top-4 right-4 bg-white rounded-full p-1 shadow-lg">

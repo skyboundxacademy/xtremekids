@@ -59,21 +59,11 @@ export default function AdminPage() {
     steps: [] as any[]
   });
 
-  const userProfileRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
-  const { data: profile } = useDoc<any>(userProfileRef);
-
-  const isAdmin = user?.email === 'goddikrayz@gmail.com' || profile?.role === 'admin';
-
-  const submissionsQuery = useMemoFirebase(() => query(collection(db, "submissions"), where("status", "==", "pending"), orderBy("timestamp", "desc")), [db]);
+  const submissionsQuery = useMemoFirebase(() => query(collection(db, "submissions"), where("status", "==", "pending")), [db]);
   const { data: pendingSubmissions } = useCollection<any>(submissionsQuery);
 
   const lessonsQuery = useMemoFirebase(() => query(collection(db, "lessons"), orderBy("createdAt", "desc")), [db]);
   const { data: allLessons } = useCollection<any>(lessonsQuery);
-
-  useEffect(() => {
-    if (!isUserLoading && !user) router.push('/login');
-    if (!isUserLoading && user && profile && !isAdmin) router.push('/');
-  }, [user, isUserLoading, router, profile, isAdmin]);
 
   const handleGuruMagic = async () => {
     if (!guruInput) {
@@ -99,8 +89,8 @@ export default function AdminPage() {
   };
 
   const handlePublish = async () => {
-    if (lessonForm.steps.length === 0) {
-      toast({ title: "Incomplete", description: "Fill out the path first." });
+    if (!lessonForm.subject || !lessonForm.targetClass || lessonForm.steps.length === 0) {
+      toast({ title: "Incomplete", description: "Subject, Class, and Steps are required!" });
       return;
     }
     setLoading(true);
@@ -142,8 +132,6 @@ export default function AdminPage() {
     }
   };
 
-  if (isUserLoading || !profile) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" /></div>;
-
   return (
     <main className="min-h-screen bg-slate-50/50 pb-20">
       <header className="bg-white border-b px-6 py-8 sticky top-0 z-[50]">
@@ -160,7 +148,7 @@ export default function AdminPage() {
               <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">
                 {activeView === "dashboard" ? "Command Center" : activeView === "create" ? "Path Architect" : activeView === "approve-tasks" ? "Approve Missions" : "Registry Management"}
               </h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 italic italic">Admin Secure Portal</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">Admin Secure Portal</p>
             </div>
           </div>
           <Link href="/profile">
@@ -223,9 +211,10 @@ export default function AdminPage() {
             {allLessons?.map((lesson: any) => (
               <Card key={lesson.id} className="border-none kid-card-shadow bg-white overflow-hidden rounded-[2rem] group">
                 <div className="relative h-40">
-                  <Image src={lesson.imageUrl} alt="l" fill className="object-cover" unoptimized />
+                  <Image src={lesson.imageUrl} alt="l" fill className="object-cover" unoptimized data-ai-hint="lesson preview" />
                   <div className="absolute inset-0 bg-black/20" />
                   <Badge className="absolute top-4 left-4 bg-primary text-white border-none">{lesson.category}</Badge>
+                  <Badge className="absolute top-4 right-4 bg-secondary text-white border-none">{lesson.targetClass}</Badge>
                 </div>
                 <CardContent className="p-6 flex items-center justify-between">
                   <div>
@@ -301,7 +290,7 @@ export default function AdminPage() {
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center relative overflow-hidden border-2 border-white/30">
-                      <Image src={GURU_AVATAR} alt="Guru" fill className="object-cover" unoptimized />
+                      <Image src={GURU_AVATAR} alt="Guru" fill className="object-cover" unoptimized data-ai-hint="guru avatar" />
                     </div>
                     <div>
                       <h2 className="text-2xl font-black uppercase italic tracking-tighter leading-none">Professor Sky</h2>

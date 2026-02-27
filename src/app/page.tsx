@@ -28,15 +28,13 @@ export default function Home() {
   const { data: profile, isLoading: isProfileLoading } = useDoc<any>(userProfileRef);
 
   const topLessonsQuery = useMemoFirebase(() => {
-    if (!user || isUserLoading) return null;
     return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'), limit(3));
-  }, [db, user, isUserLoading]);
+  }, [db]);
   const { data: topLessons, isLoading: isLessonsLoading } = useCollection<any>(topLessonsQuery);
 
   const leaderboardQuery = useMemoFirebase(() => {
-    if (!user || isUserLoading) return null;
     return query(collection(db, 'users'), orderBy('totalStars', 'desc'), limit(5));
-  }, [db, user, isUserLoading]);
+  }, [db]);
   const { data: topUsers, isLoading: isLeaderboardLoading } = useCollection<any>(leaderboardQuery);
 
   useEffect(() => {
@@ -87,7 +85,7 @@ export default function Home() {
           </div>
         </div>
         <Link href="/profile" className="w-12 h-12 rounded-2xl bg-primary/10 border-2 border-primary/20 overflow-hidden relative shadow-sm hover:scale-105 transition-transform">
-          <Image src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} alt="Avatar" fill className="object-cover" unoptimized />
+          <Image src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} alt="Avatar" fill className="object-cover" unoptimized data-ai-hint="profile avatar" />
         </Link>
       </header>
 
@@ -106,6 +104,7 @@ export default function Home() {
                 fill 
                 className="object-cover opacity-40 group-hover:scale-105 transition-transform" 
                 unoptimized
+                data-ai-hint="featured course"
               />
               <div className="absolute inset-0 p-6 flex flex-col justify-end">
                 <span className="text-[10px] font-bold uppercase mb-1 opacity-80">{topLessons[lessonIndex].category}</span>
@@ -160,7 +159,7 @@ export default function Home() {
                 <div className="flex items-center gap-3">
                   <span className="font-black text-primary/20 w-4">#{i+1}</span>
                   <div className="w-8 h-8 rounded-lg bg-slate-100 relative overflow-hidden">
-                    <Image src={u.photoURL || `https://picsum.photos/seed/${u.id}/50/50`} alt={u.displayName} fill className="object-cover" unoptimized />
+                    <Image src={u.photoURL || `https://picsum.photos/seed/${u.id}/50/50`} alt={u.displayName} fill className="object-cover" unoptimized data-ai-hint="leaderboard avatar" />
                   </div>
                   <span className="font-bold text-sm text-slate-700">{u.displayName}</span>
                 </div>

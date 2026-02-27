@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
-import { AppLogo } from "@/components/AppLogo";
 
 const CLASSES = [
   "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
@@ -40,7 +39,7 @@ export default function CategoryClassesPage() {
         {CLASSES.map((cls) => (
           <Link
             key={cls}
-            href={`/academy/${category}/${encodeURIComponent(cls)}`}
+            href={`/academy/${encodeURIComponent(decodedCategory)}/${encodeURIComponent(cls)}`}
             className="h-16 rounded-2xl bg-white flex items-center justify-center border-2 border-primary/5 kid-card-shadow font-black uppercase text-[10px] tracking-widest italic text-primary hover:bg-primary hover:text-white transition-all text-center p-2 bouncy-hover"
           >
             {cls}

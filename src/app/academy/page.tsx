@@ -56,6 +56,7 @@ export default function AcademyPage() {
               fill 
               className="object-cover group-hover:scale-110 transition-transform" 
               unoptimized 
+              data-ai-hint="subject icon"
             />
             <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center p-4">
               <span className="text-white font-black uppercase italic tracking-tighter text-center leading-tight">
