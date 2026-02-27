@@ -2,7 +2,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Tochi: Simplified English - Rules are wide open so your app never blocks anyone again.
+    // Tochi: Rules are wide open. No more permission denied errors ever again.
     match /{document=**} {
       allow read, write: if true;
     }
