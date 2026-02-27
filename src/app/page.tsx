@@ -43,13 +43,14 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // Safe redirect hook
+  // Safe redirect hook - Fixes the render-time router.push error
   useEffect(() => {
-    if (mounted && !isUserLoading && !user) {
-      router.push('/login');
-    }
-    if (mounted && !isUserLoading && user && profile && profile.onboardingCompleted === false) {
-      router.push("/onboarding");
+    if (mounted && !isUserLoading) {
+      if (!user) {
+        router.push('/login');
+      } else if (profile && profile.onboardingCompleted === false) {
+        router.push("/onboarding");
+      }
     }
   }, [user, isUserLoading, profile, router, mounted]);
 
@@ -61,7 +62,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [topLessons]);
 
-  if (!mounted || isUserLoading || (!user && mounted)) {
+  if (!mounted || isUserLoading || !user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white p-10 text-center">
         <Loader2 className="animate-spin text-primary mb-4" />
