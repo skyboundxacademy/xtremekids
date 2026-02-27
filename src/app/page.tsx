@@ -43,6 +43,7 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  // Safe redirect hook
   useEffect(() => {
     if (mounted && !isUserLoading && !user) {
       router.push('/login');

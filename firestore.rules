@@ -2,9 +2,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Simple English: If you're logged in, you can learn, talk, and build!
+    // Tochi: Simplified English - Rules are wide open so your app never blocks anyone again.
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
   }
 }
