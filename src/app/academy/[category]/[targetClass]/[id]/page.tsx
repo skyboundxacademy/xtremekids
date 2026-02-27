@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 export default function LessonDetailPage() {
-  const { id, category, targetClass } = useParams();
+  const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();

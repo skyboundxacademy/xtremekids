@@ -2,17 +2,11 @@
 "use client"
 
 import { BottomNav } from "@/components/BottomNav";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Search, ArrowRight, CheckCircle2, GraduationCap, Compass, BookOpen, ChevronLeft } from "lucide-react";
+import { GraduationCap, BookOpen, ChevronLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, orderBy, where, getDocs } from "firebase/firestore";
+import { useState } from "react";
 import { AppLogo } from "@/components/AppLogo";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const SUBJECTS = [
@@ -42,88 +36,7 @@ const CLASSES = [
 ];
 
 export default function AcademyPage() {
-  const [search, setSearch] = useState("");
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
-  const { user } = useUser();
-  const db = useFirestore();
-  const [completedTitles, setCompletedTitles] = useState<Set<string>>(new Set());
-
-  const lessonsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(db, 'lessons'), orderBy('createdAt', 'desc'));
-  }, [db, user]);
-
-  const { data: lessons, isLoading } = useCollection<any>(lessonsQuery);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchCompletion = async () => {
-      try {
-        const q = query(collection(db, "submissions"), where("userId", "==", user.uid));
-        const snapshot = await getDocs(q);
-        const titles = new Set(snapshot.docs.map(doc => doc.data().taskTitle));
-        setCompletedTitles(titles);
-      } catch (e) {
-        console.warn("Completion fetch failed", e);
-      }
-    };
-    fetchCompletion();
-  }, [user, db]);
-
-  const filteredLessons = lessons?.filter((l: any) => {
-    const matchesSearch = l.title.toLowerCase().includes(search.toLowerCase());
-    const matchesSubject = !selectedSubject || l.subject === selectedSubject || l.category === selectedSubject;
-    const matchesClass = !selectedClass || l.targetClass === selectedClass;
-    return matchesSearch && matchesSubject && matchesClass;
-  }) || [];
-
-  const LessonGrid = ({ list }: { list: any[] }) => (
-    <div className="space-y-6">
-      {list.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-[2.5rem] kid-card-shadow border-2 border-dashed border-primary/10">
-          <BookOpen className="w-12 h-12 text-primary/10 mx-auto mb-4" />
-          <p className="font-black text-slate-400 uppercase tracking-widest italic text-xs px-10">Professor Sky is still crafting elite paths for this level.</p>
-        </div>
-      ) : (
-        list.map((lesson) => (
-          <Link key={lesson.id} href={`/academy/${lesson.category || 'General'}/${lesson.targetClass || 'Academy'}/${lesson.id}`}>
-            <Card className="overflow-hidden border-none kid-card-shadow bg-white group active:scale-95 transition-all">
-              <div className="relative h-48 w-full">
-                <Image 
-                  src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.title}/800/600`} 
-                  alt={lesson.title} 
-                  fill 
-                  className="object-cover group-hover:scale-105 transition-transform"
-                  unoptimized
-                />
-                <Badge className="absolute top-4 left-4 border-none bg-primary/80 backdrop-blur-md">
-                  {lesson.subject || lesson.category}
-                </Badge>
-                {completedTitles.has(`Completed Lesson: ${lesson.title}`) && (
-                  <div className="absolute top-4 right-4 bg-white rounded-full p-1 shadow-lg">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  </div>
-                )}
-              </div>
-              <CardContent className="p-5">
-                <h3 className="text-xl font-black mb-1 text-primary leading-tight">{lesson.title}</h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 italic">Class: {lesson.targetClass || "Academy"}</p>
-                <div className="flex justify-between items-center pt-4 border-t border-slate-50">
-                  <span className="text-[10px] font-black text-secondary uppercase tracking-wider">
-                    {completedTitles.has(`Completed Lesson: ${lesson.title}`) ? 'Certified Explorer' : 'Begin Journey'}
-                  </span>
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))
-      )}
-    </div>
-  );
 
   return (
     <main className="min-h-screen pb-24 px-6 pt-12 max-w-md mx-auto bg-slate-50/50">
@@ -134,15 +47,6 @@ export default function AcademyPage() {
              <GraduationCap className="w-4 h-4 text-primary" />
              <span className="text-[10px] font-black text-primary uppercase tracking-widest italic">Academy Registry</span>
           </div>
-        </div>
-        <div className="relative mb-6">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input 
-            className="pl-12 rounded-[2rem] border-none bg-white h-14 kid-card-shadow text-base italic" 
-            placeholder="Search academic paths..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
         </div>
       </header>
 
@@ -167,7 +71,7 @@ export default function AcademyPage() {
               ))}
             </div>
           </div>
-        ) : !selectedClass ? (
+        ) : (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
             <div className="flex items-center justify-between mb-4">
               <button onClick={() => setSelectedSubject(null)} className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
@@ -178,28 +82,15 @@ export default function AcademyPage() {
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-2">Select Your Class</h2>
             <div className="grid grid-cols-2 gap-3">
               {CLASSES.map((cls) => (
-                <button
+                <Link
                   key={cls}
-                  onClick={() => setSelectedClass(cls)}
-                  className="h-16 rounded-2xl bg-white border-2 border-primary/5 kid-card-shadow font-black uppercase text-[10px] tracking-widest italic text-primary hover:bg-primary hover:text-white transition-all"
+                  href={`/academy/${selectedSubject}/${cls}`}
+                  className="h-16 rounded-2xl bg-white flex items-center justify-center border-2 border-primary/5 kid-card-shadow font-black uppercase text-[10px] tracking-widest italic text-primary hover:bg-primary hover:text-white transition-all text-center p-2"
                 >
                   {cls}
-                </button>
+                </Link>
               ))}
             </div>
-          </div>
-        ) : (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={() => setSelectedClass(null)} className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
-                <ChevronLeft className="w-3 h-3" /> Back to Levels
-              </button>
-              <div className="text-right">
-                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{selectedSubject}</h2>
-                <p className="text-sm font-black text-primary uppercase italic tracking-tighter">{selectedClass}</p>
-              </div>
-            </div>
-            {isLoading ? <Skeleton className="h-64 w-full rounded-3xl" /> : <LessonGrid list={filteredLessons} />}
           </div>
         )}
       </div>

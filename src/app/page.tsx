@@ -2,7 +2,7 @@
 "use client"
 
 import { BottomNav } from "@/components/BottomNav";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Star, Sparkles, Trophy, Loader2, ArrowRight, BookOpen, ChevronRight, ClipboardList } from "lucide-react";
 import Image from "next/image";
@@ -43,7 +43,6 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // Safe redirect hook - Fixes the render-time router.push error
   useEffect(() => {
     if (mounted && !isUserLoading) {
       if (!user) {
@@ -99,7 +98,7 @@ export default function Home() {
         {isLessonsLoading ? (
           <Skeleton className="h-44 w-full rounded-[2rem]" />
         ) : topLessons && topLessons.length > 0 ? (
-          <Link href={`/academy/${topLessons[lessonIndex].category || 'General'}/${topLessons[lessonIndex].targetClass || 'Academy'}/${topLessons[lessonIndex].id}`}>
+          <Link href={`/academy/${topLessons[lessonIndex].category}/${topLessons[lessonIndex].targetClass}/${topLessons[lessonIndex].id}`}>
             <Card className="border-none kid-card-shadow bg-primary text-white rounded-[2rem] overflow-hidden relative h-44 group">
               <Image 
                 src={topLessons[lessonIndex].imageUrl || `https://picsum.photos/seed/${topLessons[lessonIndex].id}/800/600`} 

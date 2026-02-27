@@ -7,12 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  ArrowLeft, Sparkles, Loader2, BrainCircuit, Trash2, Plus, Wand2, 
-  BookOpen, GraduationCap, CheckCircle2, ClipboardList, ShieldCheck, 
-  MessageSquare, Send, X, AlertCircle, LayoutGrid, Award
+  ArrowLeft, Sparkles, Loader2, Trash2, Plus, 
+  BookOpen, CheckCircle2, LayoutGrid, Award, Send, X
 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from "@/firebase";
@@ -65,11 +64,9 @@ export default function AdminPage() {
 
   const isAdmin = user?.email === 'goddikrayz@gmail.com' || profile?.role === 'admin';
 
-  // Submissions for approval
   const submissionsQuery = useMemoFirebase(() => query(collection(db, "submissions"), where("status", "==", "pending"), orderBy("timestamp", "desc")), [db]);
   const { data: pendingSubmissions } = useCollection<any>(submissionsQuery);
 
-  // Existing lessons for management
   const lessonsQuery = useMemoFirebase(() => query(collection(db, "lessons"), orderBy("createdAt", "desc")), [db]);
   const { data: allLessons } = useCollection<any>(lessonsQuery);
 
@@ -79,14 +76,14 @@ export default function AdminPage() {
   }, [user, isUserLoading, router, profile, isAdmin]);
 
   const handleGuruMagic = async () => {
-    if (!guruInput && (!lessonForm.title || !lessonForm.subject)) {
-      toast({ title: "Guru needs context", description: "Tell Professor Sky what to build in the message bar!" });
+    if (!guruInput) {
+      toast({ title: "Guru needs context", description: "Tell Professor Sky what to architect!" });
       return;
     }
     setLoading(true);
     try {
       const result = await generateDeepLesson({
-        title: lessonForm.title || guruInput,
+        title: lessonForm.title || "Elite Academic Journey",
         subject: lessonForm.subject || "General Studies",
         targetClass: lessonForm.targetClass || "Academy",
         idea: guruInput
@@ -129,14 +126,14 @@ export default function AdminPage() {
       batch.update(doc(db, "submissions", sub.id), { status: "approved" });
       batch.update(doc(db, "users", sub.userId), { totalStars: increment(sub.points || 10) });
       await batch.commit();
-      toast({ title: "Mission Approved!", description: `${sub.userName} earned ${sub.points} stars.` });
+      toast({ title: "Mission Approved!", description: `${sub.userName} rewarded.` });
     } catch (e) {
       toast({ title: "Approval failed", variant: "destructive" });
     }
   };
 
   const deleteLesson = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this elite path?")) return;
+    if (!confirm("Are you sure?")) return;
     try {
       await deleteDoc(doc(db, "lessons", id));
       toast({ title: "Path Removed" });
@@ -161,9 +158,9 @@ export default function AdminPage() {
             )}
             <div>
               <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">
-                {activeView === "dashboard" ? "Command Center" : activeView === "create" ? "Path Architect" : activeView === "approve-tasks" ? "Approve Missions" : "Academy Registry"}
+                {activeView === "dashboard" ? "Command Center" : activeView === "create" ? "Path Architect" : activeView === "approve-tasks" ? "Approve Missions" : "Registry Management"}
               </h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">Secure Admin Portal</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 italic italic">Admin Secure Portal</p>
             </div>
           </div>
           <Link href="/profile">
@@ -179,34 +176,21 @@ export default function AdminPage() {
               <div className="w-20 h-20 rounded-3xl bg-white/20 flex items-center justify-center backdrop-blur-md">
                 <Award className="w-10 h-10" />
               </div>
-              <div>
-                <h2 className="text-2xl font-black uppercase italic tracking-tighter">Approve Missions</h2>
-                <p className="text-xs font-bold opacity-70 mt-2 uppercase tracking-widest">
-                  {pendingSubmissions?.length || 0} Pending Submissions
-                </p>
-              </div>
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter">Approve Missions</h2>
             </Card>
 
             <Card className="border-none kid-card-shadow bg-white text-slate-800 p-8 rounded-[2.5rem] cursor-pointer hover:scale-[1.02] transition-transform flex flex-col items-center text-center gap-4" onClick={() => setActiveView("approve-lessons")}>
               <div className="w-20 h-20 rounded-3xl bg-secondary/10 flex items-center justify-center text-secondary">
                 <LayoutGrid className="w-10 h-10" />
               </div>
-              <div>
-                <h2 className="text-2xl font-black uppercase italic tracking-tighter">Manage Registry</h2>
-                <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest">
-                  {allLessons?.length || 0} Published Paths
-                </p>
-              </div>
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter">Manage Registry</h2>
             </Card>
 
             <Card className="border-none kid-card-shadow bg-secondary text-white p-8 rounded-[2.5rem] cursor-pointer hover:scale-[1.02] transition-transform flex flex-col items-center text-center gap-4" onClick={() => setActiveView("create")}>
               <div className="w-20 h-20 rounded-3xl bg-white/20 flex items-center justify-center backdrop-blur-md">
                 <Plus className="w-10 h-10" />
               </div>
-              <div>
-                <h2 className="text-2xl font-black uppercase italic tracking-tighter">Create Path</h2>
-                <p className="text-xs font-bold opacity-70 mt-2 uppercase tracking-widest">Architect New IQ Paths</p>
-              </div>
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter">Create Path</h2>
             </Card>
           </div>
         )}
@@ -221,19 +205,12 @@ export default function AdminPage() {
             ) : (
               pendingSubmissions?.map((sub: any) => (
                 <Card key={sub.id} className="border-none kid-card-shadow bg-white p-6 rounded-3xl flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-slate-100 relative overflow-hidden shrink-0">
-                      <Image src={`https://picsum.photos/seed/${sub.userId}/100/100`} alt="p" fill className="object-cover" unoptimized />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-slate-800 text-lg leading-none">{sub.userName}</h4>
-                      <p className="text-xs font-bold text-primary uppercase mt-1">{sub.taskTitle}</p>
-                      <Badge variant="secondary" className="mt-2 bg-yellow-100 text-yellow-600 border-none text-[9px] font-black uppercase">{sub.points} Stars Pending</Badge>
-                    </div>
+                  <div>
+                    <h4 className="font-black text-slate-800 text-lg leading-none">{sub.userName}</h4>
+                    <p className="text-xs font-bold text-primary uppercase mt-1">{sub.taskTitle}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={() => approveSubmission(sub)} className="rounded-2xl bg-primary font-black uppercase tracking-tighter h-12 px-8">Approve & Reward</Button>
-                    <Button variant="ghost" className="rounded-2xl text-rose-500 font-bold h-12" onClick={() => updateDoc(doc(db, "submissions", sub.id), { status: "rejected" })}>Reject</Button>
+                    <Button onClick={() => approveSubmission(sub)} className="rounded-2xl bg-primary font-black uppercase tracking-tighter h-12 px-8">Approve</Button>
                   </div>
                 </Card>
               ))
@@ -334,7 +311,7 @@ export default function AdminPage() {
 
                   <div className="bg-white/10 backdrop-blur-md rounded-[2rem] p-6 mb-8 border border-white/10 min-h-[120px]">
                     <p className="text-sm font-bold leading-relaxed italic">
-                      {loading ? "Architecting the academic journey... researching real schemes of work." : (lessonForm.steps.length > 0 ? "The Path is architected! Review it on your desk and hit Publish." : "Tell me what you want to build! Example: 'Create a JSS 1 Math path about Algebra'.")}
+                      {loading ? "Architecting the academic journey..." : (lessonForm.steps.length > 0 ? "The Path is architected! Review it on your desk and hit Publish." : "Tell me what you want to build! Example: 'Create a JSS 1 Math path about Algebra'.")}
                     </p>
                   </div>
                 </div>
@@ -352,7 +329,6 @@ export default function AdminPage() {
                         {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}
                       </Button>
                    </div>
-                   <p className="text-center text-[9px] font-black uppercase tracking-widest opacity-40 mt-4 italic">Professor Sky uses real global academic standards</p>
                 </div>
               </Card>
             </div>
