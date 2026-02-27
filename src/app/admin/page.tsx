@@ -152,9 +152,9 @@ export default function AdminPage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             {activeView !== "dashboard" ? (
-              <Button variant="ghost" size="icon" onClick={() => setActiveView("dashboard")} className="rounded-full">
-                <ArrowLeft className="w-6 h-6" />
-              </Button>
+              <button onClick={() => setActiveView("dashboard")} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <ArrowLeft className="w-6 h-6 text-primary" />
+              </button>
             ) : (
               <AppLogo />
             )}
@@ -162,7 +162,7 @@ export default function AdminPage() {
               <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">
                 {activeView === "dashboard" ? "Command Center" : activeView === "create" ? "Path Architect" : activeView === "approve-tasks" ? "Approve Missions" : "Registry Management"}
               </h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">Admin Secure Portal</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">skyX bound Secure Portal</p>
             </div>
           </div>
           <Link href="/profile">
@@ -251,12 +251,12 @@ export default function AdminPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400">Path Title</Label>
-                    <Input value={lessonForm.title} onChange={e => setLessonForm(p => ({...p, title: e.target.value}))} className="rounded-xl h-14 bg-slate-50 border-none font-bold italic" placeholder="e.g. Intro to Algebra" />
+                    <Input value={lessonForm.title} onChange={e => setLessonForm(p => ({...p, title: e.target.value}))} className="rounded-xl h-14 bg-slate-50 border-none font-bold italic px-4" placeholder="e.g. Intro to Algebra" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400">Class Level</Label>
                     <Select onValueChange={v => setLessonForm(p => ({...p, targetClass: v}))} value={lessonForm.targetClass}>
-                      <SelectTrigger className="rounded-xl h-14 bg-slate-50 border-none font-bold italic"><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectTrigger className="rounded-xl h-14 bg-slate-50 border-none font-bold italic px-4"><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
                         {CLASSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
@@ -267,7 +267,7 @@ export default function AdminPage() {
                 <div className="space-y-2">
                   <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400">Subject Category</Label>
                   <Select onValueChange={v => setLessonForm(p => ({...p, subject: v}))} value={lessonForm.subject}>
-                    <SelectTrigger className="rounded-xl h-14 bg-slate-50 border-none font-bold italic"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectTrigger className="rounded-xl h-14 bg-slate-50 border-none font-bold italic px-4"><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       <ScrollArea className="h-80">
                         {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -276,13 +276,17 @@ export default function AdminPage() {
                   </Select>
                 </div>
 
-                {lessonForm.steps.length > 0 && (
-                  <div className="space-y-6 pt-6 border-t border-slate-100">
-                    <div className="flex justify-between items-center">
-                       <h3 className="text-lg font-black text-primary uppercase italic">Architect's Desk (Review Content)</h3>
-                       <Badge variant="outline" className="font-black">{lessonForm.steps.length} Steps</Badge>
+                <div className="space-y-6 pt-6 border-t border-slate-100">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-black text-primary uppercase italic">Architect's Desk (Pit Content)</h3>
+                    {lessonForm.steps.length > 0 && <Badge variant="outline" className="font-black">{lessonForm.steps.length} Steps</Badge>}
+                  </div>
+                  
+                  {lessonForm.steps.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed rounded-3xl opacity-30">
+                      <p className="text-sm font-bold uppercase italic">Use Professor Sky to build steps automatically or start typing!</p>
                     </div>
-                    
+                  ) : (
                     <div className="space-y-4">
                       {lessonForm.steps.map((step, i) => (
                         <Card key={i} className="border-none bg-slate-50 p-6 rounded-3xl relative">
@@ -291,17 +295,20 @@ export default function AdminPage() {
                                 <span className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-black text-xs shrink-0">{i+1}</span>
                                 <Badge className="uppercase font-black text-[9px] tracking-widest">{step.type}</Badge>
                               </div>
-                              <Button variant="ghost" size="icon" onClick={() => setEditingStepIndex(editingStepIndex === i ? null : i)} className="rounded-full">
-                                {editingStepIndex === i ? <Save className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+                              <Button variant="ghost" size="icon" onClick={() => setEditingStepIndex(editingStepIndex === i ? null : i)} className="rounded-full h-10 w-10">
+                                {editingStepIndex === i ? <Save className="w-4 h-4 text-green-600" /> : <Edit3 className="w-4 h-4 text-primary" />}
                               </Button>
                            </div>
 
                            {editingStepIndex === i ? (
-                             <Textarea 
-                               value={step.content} 
-                               onChange={(e) => updateStepContent(i, e.target.value)}
-                               className="min-h-[100px] rounded-2xl bg-white border-none font-medium italic mb-4"
-                             />
+                             <div className="space-y-4">
+                               <Label className="font-black text-[10px] uppercase text-slate-400">Step Content</Label>
+                               <Textarea 
+                                 value={step.content} 
+                                 onChange={(e) => updateStepContent(i, e.target.value)}
+                                 className="min-h-[150px] rounded-2xl bg-white border-none font-medium italic mb-4 p-4"
+                               />
+                             </div>
                            ) : (
                              <p className="text-sm font-medium text-slate-700 italic leading-relaxed whitespace-pre-wrap">{step.content}</p>
                            )}
@@ -327,10 +334,10 @@ export default function AdminPage() {
                         </Card>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
-                <Button onClick={handlePublish} disabled={loading || lessonForm.steps.length === 0} className="w-full h-16 rounded-[2rem] bg-primary font-black text-xl kid-card-shadow uppercase italic tracking-tighter">
+                <Button onClick={handlePublish} disabled={loading || lessonForm.steps.length === 0} className="w-full h-16 rounded-[2rem] bg-primary font-black text-xl kid-card-shadow uppercase italic tracking-tighter shadow-lg shadow-primary/20">
                    {loading ? <Loader2 className="animate-spin" /> : "Publish to Academy"}
                 </Button>
               </Card>
@@ -340,7 +347,7 @@ export default function AdminPage() {
               <Card className="border-none kid-card-shadow bg-primary rounded-[3rem] p-8 text-white flex-1 relative overflow-hidden flex flex-col sticky top-32 h-fit">
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-8">
-                    <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center relative overflow-hidden border-2 border-white/30">
+                    <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center relative overflow-hidden border-2 border-white/30 shadow-xl">
                       <Image src={GURU_AVATAR} alt="Guru" fill className="object-cover" unoptimized data-ai-hint="guru avatar" />
                     </div>
                     <div>
@@ -351,7 +358,7 @@ export default function AdminPage() {
 
                   <div className="bg-white/10 backdrop-blur-md rounded-[2rem] p-6 mb-8 border border-white/10 min-h-[120px]">
                     <p className="text-sm font-bold leading-relaxed italic">
-                      {loading ? "Architecting the academic journey..." : (lessonForm.steps.length > 0 ? "The Path is architected! Review every step on your desk. You can edit the text before hitting Publish." : "Tell me what you want to build! Example: 'Create a JSS 1 Math path about Algebra'. I will fill out the content for you.")}
+                      {loading ? "Architecting the elite journey..." : (lessonForm.steps.length > 0 ? "The Path is architected! Pit your own content on the Desk or hit Publish." : "Tell me what you want to build! Example: 'Create a JSS 1 Math path about Algebra'. I will fill out the content for you.")}
                     </p>
                   </div>
                 </div>
