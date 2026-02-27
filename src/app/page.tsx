@@ -41,13 +41,14 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  // Use a proper effect for redirects to avoid "update while rendering" errors
   useEffect(() => {
-    if (mounted && !isUserLoading) {
-      if (!user) {
-        router.push('/login');
-      } else if (profile && profile.onboardingCompleted === false) {
-        router.push("/onboarding");
-      }
+    if (!mounted || isUserLoading) return;
+
+    if (!user) {
+      router.replace('/login');
+    } else if (profile && profile.onboardingCompleted === false) {
+      router.replace("/onboarding");
     }
   }, [user, isUserLoading, profile, router, mounted]);
 
