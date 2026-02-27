@@ -3,7 +3,6 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, CheckCircle2, BookOpen, ChevronLeft } from "lucide-react";
 import Image from "next/image";
@@ -11,7 +10,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy, where, getDocs } from "firebase/firestore";
-import { AppLogo } from "@/components/AppLogo";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ClassLessonsPage() {
@@ -21,15 +19,18 @@ export default function ClassLessonsPage() {
   const db = useFirestore();
   const [completedTitles, setCompletedTitles] = useState<Set<string>>(new Set());
 
+  const decodedCategory = decodeURIComponent(category as string);
+  const decodedClass = decodeURIComponent(targetClass as string);
+
   const lessonsQuery = useMemoFirebase(() => {
     if (!user || !category || !targetClass) return null;
     return query(
       collection(db, 'lessons'), 
-      where('category', '==', decodeURIComponent(category as string)),
-      where('targetClass', '==', decodeURIComponent(targetClass as string)),
+      where('category', '==', decodedCategory),
+      where('targetClass', '==', decodedClass),
       orderBy('createdAt', 'desc')
     );
-  }, [db, user, category, targetClass]);
+  }, [db, user, decodedCategory, decodedClass]);
 
   const { data: lessons, isLoading } = useCollection<any>(lessonsQuery);
 
@@ -57,10 +58,10 @@ export default function ClassLessonsPage() {
           </button>
           <div>
             <h1 className="text-sm font-black text-slate-400 uppercase tracking-widest leading-none">
-              {decodeURIComponent(category as string)}
+              {decodedCategory}
             </h1>
             <p className="text-xl font-black text-primary uppercase italic tracking-tighter">
-              {decodeURIComponent(targetClass as string)}
+              {decodedClass}
             </p>
           </div>
         </div>
@@ -72,7 +73,7 @@ export default function ClassLessonsPage() {
         ) : lessons && lessons.length > 0 ? (
           lessons.map((lesson: any) => (
             <Link key={lesson.id} href={`/academy/${category}/${targetClass}/${lesson.id}`}>
-              <Card className="overflow-hidden border-none kid-card-shadow bg-white group active:scale-95 transition-all">
+              <Card className="overflow-hidden border-none kid-card-shadow bg-white group active:scale-95 transition-all rounded-[2rem]">
                 <div className="relative h-40 w-full">
                   <Image 
                     src={lesson.imageUrl || `https://picsum.photos/seed/${lesson.title}/800/600`} 
