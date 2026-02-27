@@ -59,7 +59,7 @@ export default function Home() {
     const interval = setInterval(() => {
       setLessonIndex((prev) => (prev + 1) % topLessons.length);
     }, 10000);
-    return () => interval(interval);
+    return () => clearInterval(interval);
   }, [topLessons]);
 
   if (!mounted || isUserLoading || !user) {
