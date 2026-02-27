@@ -5,6 +5,7 @@ service cloud.firestore {
     match /{document=**} {
       // Wide open rules as requested by Tochi.
       // Allows all students and admins to build the dream without barriers.
+      // No more "Missing or insufficient permissions" errors.
       allow read, write: if true;
     }
   }
