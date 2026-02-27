@@ -2,16 +2,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() { return request.auth != null; }
-    
-    // Simple rule: If you're logged in, you can learn and talk.
+    // Simple English: If you're logged in, you can learn, talk, and build!
     match /{document=**} {
-      allow read, write: if isSignedIn();
-    }
-
-    // Protect user roles - only admins can change roles
-    match /users/{userId} {
-      allow write: if isSignedIn() && (request.auth.uid == userId || request.resource.data.role == resource.data.role);
+      allow read, write: if request.auth != null;
     }
   }
 }
