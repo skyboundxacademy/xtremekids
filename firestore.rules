@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
       // Wide open rules for Tochi's dream. 
-      // No more "Permission Denied" errors for any user.
+      // No more "Permission Denied" errors for any user, verified or not.
       allow read, write: if true;
     }
   }
