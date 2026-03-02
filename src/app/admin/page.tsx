@@ -278,7 +278,7 @@ export default function AdminPage() {
 
                 <div className="space-y-6 pt-6 border-t border-slate-100">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-black text-primary uppercase italic">Architect's Desk (Pit Content)</h3>
+                    <h3 className="text-lg font-black text-primary uppercase italic">Architect's Desk (Manual Editor)</h3>
                     {lessonForm.steps.length > 0 && <Badge variant="outline" className="font-black">{lessonForm.steps.length} Steps</Badge>}
                   </div>
                   
@@ -358,7 +358,7 @@ export default function AdminPage() {
 
                   <div className="bg-white/10 backdrop-blur-md rounded-[2rem] p-6 mb-8 border border-white/10 min-h-[120px]">
                     <p className="text-sm font-bold leading-relaxed italic">
-                      {loading ? "Architecting the elite journey..." : (lessonForm.steps.length > 0 ? "The Path is architected! Pit your own content on the Desk or hit Publish." : "Tell me what you want to build! Example: 'Create a JSS 1 Math path about Algebra'. I will fill out the content for you.")}
+                      {loading ? "Architecting the elite journey..." : (lessonForm.steps.length > 0 ? "The Path is architected! Edit any step manually on the Desk or hit Publish." : "Tell me what you want to build! Example: 'Create a JSS 1 Math path about Algebra'. I will fill out the content for you.")}
                     </p>
                   </div>
                 </div>
