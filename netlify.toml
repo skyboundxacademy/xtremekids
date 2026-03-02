@@ -1,10 +1,12 @@
+
 [build]
   command = "npm run build"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
-  NEXT_USE_NETLIFY_EDGE = "true"
+  # Disabling Edge to resolve 500 Internal Server Errors in Next.js 15
+  NEXT_USE_NETLIFY_EDGE = "false"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
