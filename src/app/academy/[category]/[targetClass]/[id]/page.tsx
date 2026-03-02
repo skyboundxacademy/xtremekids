@@ -88,7 +88,7 @@ export default function LessonDetailPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center space-y-4">
         <HelpCircle className="w-12 h-12 text-slate-200" />
-        <h2 className="font-black text-slate-400 uppercase tracking-widest italic text-xs">This Academic Path is still being built by the Architect.</h2>
+        <h2 className="font-black text-slate-400 uppercase tracking-widest italic text-xs">This Academic Path is still being built.</h2>
         <Button onClick={() => router.back()} variant="outline" className="rounded-full">Go Back</Button>
       </div>
     );

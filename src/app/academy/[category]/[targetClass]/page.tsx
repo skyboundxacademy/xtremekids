@@ -80,7 +80,6 @@ export default function ClassLessonsPage() {
                     fill 
                     className="object-cover group-hover:scale-105 transition-transform"
                     unoptimized
-                    data-ai-hint="lesson cover"
                   />
                   {completedTitles.has(`Completed Lesson: ${lesson.title}`) && (
                     <div className="absolute top-4 right-4 bg-white rounded-full p-1 shadow-lg">
